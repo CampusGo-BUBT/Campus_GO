@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.env
+
+# Firebase / Google service-account secrets
+service-account*.json
+*-adminsdk*.json
+*service*account*.json
+firebase-adminsdk.json
+google-services.json
+
+# Django
+*.sqlite3
+db.sqlite3
+/staticfiles/
+/media/
+*.log
+
+# IDE
+.idea/
+.vscode/
