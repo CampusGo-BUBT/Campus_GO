@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "186247273220",
+    "project_id": "campusgo-86968",
+    "storage_bucket": "campusgo-86968.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:186247273220:android:1ad4087a3105ab676b0e51",
+        "android_client_info": {
+          "package_name": "com.devengers.campusgo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXQN3jPOaNlydGwYChJDEO0gTmuVDC4tE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:186247273220:android:e515ea50d150422a6b0e51",
+        "android_client_info": {
+          "package_name": "com.example.campusgo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXQN3jPOaNlydGwYChJDEO0gTmuVDC4tE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

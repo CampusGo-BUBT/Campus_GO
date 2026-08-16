@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check if user is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Users collection: anyone logged in can read; only owner can write
+    match /users/{userId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // Posts (home feed)
+    match /posts/{postId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.authorId == request.auth.uid;
+    }
+
+    // Tutors (tuition jobs) — any logged-in user can post and read
+    match /tutors/{tutorId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth();
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // Tuition applications
+    match /tuition_applications/{appId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.applicantId == request.auth.uid;
+    }
+
+    // Conversations (direct messages)
+    match /conversations/{convId} {
+      allow read, write: if isAuth() && request.auth.uid in resource.data.participants;
+      allow create: if isAuth();
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read: if isAuth();
+        allow create: if isAuth();
+        allow update, delete: if isAuth() && resource.data.senderId == request.auth.uid;
+      }
+    }
+
+    // Study Groups
+    match /study_groups/{groupId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth();
+
+      match /messages/{messageId} {
+        allow read, create: if isAuth();
+        allow delete: if isAuth() && resource.data.senderId == request.auth.uid;
+      }
+    }
+
+    // Books
+    match /books/{bookId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // Hostels
+    match /hostels/{hostelId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // Jobs
+    match /jobs/{jobId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // Notices
+    match /notices/{noticeId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read, write: if isAuth() && request.auth.uid == resource.data.userId;
+      allow create: if isAuth();
+    }
+
+    // FCM tokens
+    match /fcm_tokens/{tokenId} {
+      allow read, write: if isAuth();
+    }
+  }
+}

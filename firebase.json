@@ -1,0 +1,25 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "campusgo-86968",
+          "appId": "1:186247273220:android:e515ea50d150422a6b0e51",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "campusgo-86968",
+          "configurations": {
+            "android": "1:186247273220:android:e515ea50d150422a6b0e51",
+            "ios": "1:186247273220:ios:a8b2c84be21c28c46b0e51"
+          }
+        }
+      }
+    }
+  }
+}
