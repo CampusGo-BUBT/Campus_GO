@@ -56,6 +56,13 @@ class _LoginScreenState extends State<LoginScreen>
     if (mounted) setState(() { _loading = false; _error = error; });
   }
 
+  Future<void> _loginWithGoogle() async {
+    setState(() { _loading = true; _error = null; });
+    final error = await Provider.of<AuthService>(context, listen: false)
+        .signInWithGoogle();
+    if (mounted) setState(() { _loading = false; _error = error; });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -169,6 +176,31 @@ class _LoginScreenState extends State<LoginScreen>
                               : Text('Log In', style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontSize: 16, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Google sign-in ──
+                      SizedBox(
+                        width: double.infinity, height: 54,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF1E293B),
+                            side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                          ),
+                          onPressed: _loading ? null : _loginWithGoogle,
+                          icon: Image.network(
+                            'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                            width: 20, height: 20, errorBuilder:
+                                (_, __, ___) => const Icon(Icons.g_mobiledata,
+                                    color: Color(0xFF1E293B), size: 28),
+                          ),
+                          label: Text('Continue with Google',
+                              style: GoogleFonts.poppins(
+                                  fontSize: 15, fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(height: 16),

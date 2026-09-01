@@ -36,6 +36,8 @@ class ShimmerList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: count,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (_, _) => ShimmerCard(height: itemHeight),
     );
   }

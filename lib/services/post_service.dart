@@ -7,6 +7,9 @@ class PostService {
 
   Stream<List<FeedPost>> postsStream() => pollStream(() => _fetch(''));
 
+  Stream<List<FeedPost>> postsStreamByType(String type) =>
+      pollStream(() => _fetchByType(type));
+
   Stream<List<FeedPost>> savedPostsStream() => pollStream(() => _fetch('/saved/'));
 
   Future<void> createPost({
@@ -34,6 +37,11 @@ class PostService {
 
   Future<List<FeedPost>> _fetch(String suffix) async {
     final data = await _api.get('/posts/$suffix');
+    return _parse(data);
+  }
+
+  Future<List<FeedPost>> _fetchByType(String type) async {
+    final data = await _api.get('/posts/?type=$type');
     return _parse(data);
   }
 

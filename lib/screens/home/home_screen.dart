@@ -23,6 +23,7 @@ import '../profile/profile_screen.dart';
 import '../post/create_post_screen.dart';
 import '../saved/saved_posts_screen.dart';
 import '../messages/inbox_screen.dart';
+import '../admin/admin_dashboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,6 +34,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _userName = 'Student';
   String _userDept = '';
+  String _userType = '';
 
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _userName = data['name'] ?? 'Student';
       _userDept = data['department'] ?? '';
+      _userType = data['userType'] ?? 'student';
     });
   }
 
@@ -150,6 +153,31 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       // Theme toggle button
+                      if (_userType == 'admin') ...[
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const AdminDashboardScreen()),
+                          ),
+                          child: Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : const Color(0xFF1E293B),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.admin_panel_settings_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       GestureDetector(
                         onTap: () => themeService.toggleTheme(),
                         child: Container(

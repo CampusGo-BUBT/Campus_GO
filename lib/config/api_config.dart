@@ -12,8 +12,9 @@ class ApiConfig {
 
   static String get baseUrl {
     if (_fromEnv.isNotEmpty) return _fromEnv;
-    // Android emulator reaches the host machine via 10.0.2.2.
-    if (Platform.isAndroid) return 'http://10.0.2.2:8000/api';
+    // Physical Android device reaches the host PC via its LAN IP.
+    // (The Android *emulator* would use 10.0.2.2 instead.)
+    if (Platform.isAndroid) return 'http://192.168.0.108:8000/api';
     return 'http://localhost:8000/api';
   }
 }

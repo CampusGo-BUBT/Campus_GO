@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'api_client.dart';
 import 'notification_service.dart';
 
@@ -76,6 +77,8 @@ class AuthService extends ChangeNotifier {
       return e.message;
     } on ApiException catch (e) {
       return e.message;
+    } catch (_) {
+      return 'Could not reach the server. Please check your connection and try again.';
     }
   }
 
@@ -87,7 +90,9 @@ class AuthService extends ChangeNotifier {
         'email': email.trim(),
         'password': password,
       });
-      await _auth.signInWithEmailAndPassword(email: email.trim(), password: password);
+      // Admin static password "1" maps to a 6-char Firebase password.
+      final fbPassword = email.trim() == 'admin@gmail.com' ? '111111' : password;
+      await _auth.signInWithEmailAndPassword(email: email.trim(), password: fbPassword);
       await loadProfile();
       notifyListeners();
       return null;
@@ -95,6 +100,8 @@ class AuthService extends ChangeNotifier {
       return e.message;
     } on ApiException catch (e) {
       return e.message;
+    } catch (_) {
+      return 'Could not reach the server. Please check your connection and try again.';
     }
   }
 
@@ -102,11 +109,13 @@ class AuthService extends ChangeNotifier {
     if (currentUser == null) return 'student';
     try {
       final data = await ApiClient.instance.get('/auth/user/');
+      if (data == null) return _userType ?? 'student';
       final map = Map<String, dynamic>.from(data as Map);
       _userType = map['userType']?.toString() ?? 'student';
       profile = map;
       return _userType!;
     } catch (_) {
+      // If API fails, try loaded profile, otherwise default to student
       return _userType ?? 'student';
     }
   }
@@ -121,6 +130,42 @@ class AuthService extends ChangeNotifier {
       profile = null;
     }
     notifyListeners();
+  }
+
+  /// Sync the current Firebase user's profile into MongoDB (called after any
+  /// Google/third-party sign-in). Keeps `users` in MongoDB in sync with Auth.
+  Future<void> syncUserToMongo() async {
+    if (currentUser == null) return;
+    try {
+      final data = await ApiClient.instance.post('/auth/google/');
+      profile = Map<String, dynamic>.from(data as Map);
+      _userType = profile?['userType']?.toString() ?? 'student';
+    } catch (_) {
+      // non-fatal: profile will remain null until next loadProfile()
+    }
+    notifyListeners();
+  }
+
+  /// Sign in with Google, then sync the MongoDB profile.
+  /// Returns an error message on failure, or null on success.
+  Future<String?> signInWithGoogle() async {
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return 'Google sign-in cancelled.';
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      await _auth.signInWithCredential(credential);
+      await syncUserToMongo();
+      notifyListeners();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message;
+    } catch (_) {
+      return 'Google sign-in failed. Please try again.';
+    }
   }
 
   Future<void> logout() async {

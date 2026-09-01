@@ -45,17 +45,21 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen>
       return;
     }
     setState(() { _loading = true; _error = null; });
-    final error = await Provider.of<AuthService>(context, listen: false).registerStudent(
-      name: _nameCtrl.text.trim(),
-      email: _emailCtrl.text.trim(),
-      password: _passCtrl.text.trim(),
-      studentId: _idCtrl.text.trim(),
-      university: _univCtrl.text.trim().isEmpty ? 'BUBT' : _univCtrl.text.trim(),
-    );
-    if (mounted) {
-      setState(() { _loading = false; _error = error; });
-      if (error == null) Navigator.pop(context);
+    String? error;
+    try {
+      error = await Provider.of<AuthService>(context, listen: false).registerStudent(
+        name: _nameCtrl.text.trim(),
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text.trim(),
+        studentId: _idCtrl.text.trim(),
+        university: _univCtrl.text.trim().isEmpty ? 'BUBT' : _univCtrl.text.trim(),
+      );
+    } catch (_) {
+      error = 'Something went wrong. Please try again.';
     }
+    if (!mounted) return;
+    setState(() { _loading = false; _error = error; });
+    if (error == null) Navigator.pop(context);
   }
 
   @override

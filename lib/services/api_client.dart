@@ -25,6 +25,8 @@ class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
 
+  static const Duration _timeout = Duration(seconds: 15);
+
   Future<String?> _token() async {
     return FirebaseAuth.instance.currentUser?.getIdToken();
   }
@@ -77,33 +79,37 @@ class ApiClient {
 
   Future<dynamic> get(String path) async {
     final token = await _token();
-    final res = await http.get(_uri(path), headers: _headers(token: token));
+    final res = await http.get(_uri(path), headers: _headers(token: token)).timeout(_timeout);
     return _decode(res);
   }
 
   Future<dynamic> post(String path, {Map<String, dynamic>? body}) async {
     final token = await _token();
-    final res = await http.post(
-      _uri(path),
-      headers: _headers(token: token),
-      body: jsonEncode(body ?? {}),
-    );
+    final res = await http
+        .post(
+          _uri(path),
+          headers: _headers(token: token),
+          body: jsonEncode(body ?? {}),
+        )
+        .timeout(_timeout);
     return _decode(res);
   }
 
   Future<dynamic> patch(String path, {Map<String, dynamic>? body}) async {
     final token = await _token();
-    final res = await http.patch(
-      _uri(path),
-      headers: _headers(token: token),
-      body: jsonEncode(body ?? {}),
-    );
+    final res = await http
+        .patch(
+          _uri(path),
+          headers: _headers(token: token),
+          body: jsonEncode(body ?? {}),
+        )
+        .timeout(_timeout);
     return _decode(res);
   }
 
   Future<dynamic> delete(String path) async {
     final token = await _token();
-    final res = await http.delete(_uri(path), headers: _headers(token: token));
+    final res = await http.delete(_uri(path), headers: _headers(token: token)).timeout(_timeout);
     return _decode(res);
   }
 
@@ -158,15 +164,18 @@ class ApiClient {
 /// Errors are swallowed so the UI keeps its last good data instead of crashing.
 Stream<List<T>> pollStream<T>(
   Future<List<T>> Function() fetch, {
-  Duration interval = const Duration(seconds: 15),
+  Duration interval = const Duration(minutes: 5),
 }) {
   final controller = StreamController<List<T>>();
   Future<void> tick() async {
     try {
       final data = await fetch();
-      if (!controller.isClosed) controller.add(data);
-    } catch (_) {
-      // keep last emitted data on transient errors
+      if (!controller.isClosed) {
+        controller.add(data);
+        print('[pollStream] emitted ${(data as List).length} items');
+      }
+    } catch (e) {
+      print('[pollStream] FETCH ERROR: $e');
     }
   }
 
