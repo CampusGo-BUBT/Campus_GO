@@ -7,6 +7,8 @@ import '../../services/job_service.dart';
 import '../../services/user_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../widgets/smart_image.dart';
+import 'job_detail_screen.dart';
 
 class JobScreen extends StatefulWidget {
   const JobScreen({super.key});
@@ -46,6 +48,12 @@ class _JobScreenState extends State<JobScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        onPressed: _showAddJobDialog,
+        child: const Icon(Icons.add),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -53,6 +61,127 @@ class _JobScreenState extends State<JobScreen> {
             Expanded(child: _buildBody(isDark)),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showAddJobDialog() {
+    final titleCtrl = TextEditingController();
+    final companyCtrl = TextEditingController();
+    final locationCtrl = TextEditingController();
+    final salaryCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    bool isLoading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            left: 20, right: 20, top: 16,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 44, height: 4,
+                    decoration: BoxDecoration(color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Container(padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                      child: const Icon(Icons.work, color: AppTheme.primary, size: 20)),
+                  const SizedBox(width: 10),
+                  Text('Post a Job',
+                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                ]),
+                const SizedBox(height: 16),
+                _jfield(titleCtrl, 'Job Title *', Icons.title),
+                const SizedBox(height: 10),
+                _jfield(companyCtrl, 'Company *', Icons.business),
+                const SizedBox(height: 10),
+                _jfield(locationCtrl, 'Location *', Icons.location_on),
+                const SizedBox(height: 10),
+                _jfield(salaryCtrl, 'Salary (e.g. Tk15,000)', Icons.attach_money),
+                const SizedBox(height: 10),
+                _jfield(emailCtrl, 'Contact Email', Icons.email_outlined),
+                const SizedBox(height: 10),
+                _jfield(descCtrl, 'Description', Icons.description_outlined),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity, height: 52,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                    onPressed: isLoading ? null : () async {
+                      if (titleCtrl.text.trim().isEmpty || companyCtrl.text.trim().isEmpty || locationCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Title, company and location are required!')));
+                        return;
+                      }
+                      setModal(() => isLoading = true);
+                      try {
+                        final job = JobModel(
+                          id: '',
+                          title: titleCtrl.text.trim(),
+                          company: companyCtrl.text.trim(),
+                          location: locationCtrl.text.trim(),
+                          salary: salaryCtrl.text.trim(),
+                          description: descCtrl.text.trim(),
+                          contactEmail: emailCtrl.text.trim(),
+                          phone: '',
+                          userId: '',
+                          posterName: '',
+                        );
+                        await _jobService.addJob(job);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                      } catch (e) {
+                        setModal(() => isLoading = false);
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(content: Text('Could not post job: $e')));
+                        }
+                      }
+                    },
+                    child: isLoading
+                        ? const SizedBox(width: 20, height: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text('Post Job', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _jfield(TextEditingController c, String hint, IconData icon, {TextInputType type = TextInputType.text}) {
+    return TextField(
+      controller: c,
+      keyboardType: type,
+      style: GoogleFonts.poppins(fontSize: 13),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400, fontSize: 13),
+        prefixIcon: Icon(icon, color: AppTheme.primary, size: 18),
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       ),
     );
   }
@@ -80,7 +209,7 @@ class _JobScreenState extends State<JobScreen> {
           CircleAvatar(
             radius: 20,
             backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
-            backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
+            backgroundImage: imageProviderFor(_photoUrl),
             child: _photoUrl == null
                 ? Text(
                     _userName.isNotEmpty ? _userName[0].toUpperCase() : 'S',
@@ -223,21 +352,26 @@ class _JobCard extends StatelessWidget {
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => JobDetailScreen(job: job)),
       ),
-      child: Column(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -297,6 +431,7 @@ class _JobCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

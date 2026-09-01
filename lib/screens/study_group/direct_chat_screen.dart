@@ -6,6 +6,7 @@ import '../../models/chat_model.dart';
 import '../../services/chat_service.dart';
 import '../../services/user_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/smart_image.dart';
 
 class DirectChatScreen extends StatefulWidget {
   final String otherUserId;
@@ -158,9 +159,7 @@ class _DirectChatScreenState extends State<DirectChatScreen>
             CircleAvatar(
               radius: 18,
               backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
-              backgroundImage: widget.otherUserPhotoUrl != null
-                  ? NetworkImage(widget.otherUserPhotoUrl!)
-                  : null,
+              backgroundImage: imageProviderFor(widget.otherUserPhotoUrl),
               child: widget.otherUserPhotoUrl == null
                   ? Text(
                       widget.otherUserName.isNotEmpty
@@ -243,9 +242,7 @@ class _DirectChatScreenState extends State<DirectChatScreen>
                           radius: 36,
                           backgroundColor:
                               AppTheme.primary.withValues(alpha: 0.1),
-                          backgroundImage: widget.otherUserPhotoUrl != null
-                              ? NetworkImage(widget.otherUserPhotoUrl!)
-                              : null,
+                          backgroundImage: imageProviderFor(widget.otherUserPhotoUrl),
                           child: widget.otherUserPhotoUrl == null
                               ? Text(
                                   widget.otherUserName.isNotEmpty
@@ -493,9 +490,7 @@ class _MessageBubble extends StatelessWidget {
                       radius: 14,
                       backgroundColor:
                           AppTheme.primary.withValues(alpha: 0.15),
-                      backgroundImage: otherPhotoUrl != null
-                          ? NetworkImage(otherPhotoUrl!)
-                          : null,
+                      backgroundImage: imageProviderFor(otherPhotoUrl),
                       child: otherPhotoUrl == null
                           ? Text(
                               otherName.isNotEmpty

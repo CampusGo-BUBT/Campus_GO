@@ -8,6 +8,7 @@ import '../../services/post_service.dart';
 import '../../services/user_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../widgets/smart_image.dart';
 import '../../widgets/custom_bottom_nav_bar.dart';
 import '../../widgets/app_transitions.dart';
 import '../home/home_screen.dart';
@@ -230,7 +231,7 @@ class _NoticeScreenState extends State<NoticeScreen> {
                         CircleAvatar(
                           radius: 20,
                           backgroundColor: AppTheme.cyan.withValues(alpha: 0.15),
-                          backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
+                          backgroundImage: imageProviderFor(_photoUrl),
                           child: _photoUrl == null
                               ? Text(_userName.isNotEmpty ? _userName[0].toUpperCase() : 'S',
                                   style: GoogleFonts.poppins(

@@ -5,6 +5,7 @@ import '../models/feed_post.dart';
 import '../services/post_service.dart';
 import '../theme/app_theme.dart';
 import '../screens/study_group/direct_chat_screen.dart';
+import 'smart_image.dart';
 
 class PostCard extends StatefulWidget {
   final FeedPost post;
@@ -62,6 +63,35 @@ class _PostCardState extends State<PostCard>
     );
   }
 
+  void _editPost(BuildContext context) {
+    final ctrl = TextEditingController(text: widget.post.caption);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Post'),
+        content: TextField(
+          controller: ctrl,
+          maxLines: 5,
+          decoration: const InputDecoration(hintText: 'Caption'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await PostService()
+                  .updatePost(widget.post.id, caption: ctrl.text.trim());
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -109,10 +139,12 @@ class _PostCardState extends State<PostCard>
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: typeMeta.color.withValues(alpha: 0.12),
-                    backgroundImage: widget.post.authorPhotoUrl != null
+                    backgroundImage: widget.post.authorPhotoUrl != null &&
+                            widget.post.authorPhotoUrl!.isNotEmpty
                         ? NetworkImage(widget.post.authorPhotoUrl!)
                         : null,
-                    child: widget.post.authorPhotoUrl == null
+                    child: widget.post.authorPhotoUrl == null ||
+                            widget.post.authorPhotoUrl!.isEmpty
                         ? Text(
                       widget.post.authorName.isNotEmpty
                           ? widget.post.authorName[0].toUpperCase()
@@ -142,6 +174,22 @@ class _PostCardState extends State<PostCard>
                       ],
                     ),
                   ),
+                  if (widget.post.authorId == uid)
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert,
+                          size: 20, color: Colors.grey.shade500),
+                      onSelected: (v) {
+                        if (v == 'edit') {
+                          _editPost(context);
+                        } else if (v == 'delete') {
+                          PostService().deletePost(widget.post.id);
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(value: 'edit', child: Text('Edit')),
+                        PopupMenuItem(value: 'delete', child: Text('Delete')),
+                      ],
+                    ),
                   // Type Badge
                   Container(
                     padding:
@@ -205,7 +253,8 @@ class _PostCardState extends State<PostCard>
             const SizedBox(height: 10),
 
             // ── Image ──────────────────────────────────────
-            if (widget.post.imageUrl != null)
+            if (widget.post.imageUrl != null &&
+                widget.post.imageUrl!.isNotEmpty)
               ClipRRect(
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
@@ -215,8 +264,7 @@ class _PostCardState extends State<PostCard>
                   children: [
                     AspectRatio(
                       aspectRatio: 1.4,
-                      child: Image.network(widget.post.imageUrl!,
-                          fit: BoxFit.cover),
+                      child: SmartImage(widget.post.imageUrl!, fit: BoxFit.cover),
                     ),
                     // Action bar overlay
                     Positioned(

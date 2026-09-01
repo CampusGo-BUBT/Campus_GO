@@ -7,6 +7,8 @@ import '../../services/study_group_service.dart';
 import '../../services/user_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../widgets/smart_image.dart';
+import 'chat_screen.dart';
 
 class StudyGroupScreen extends StatefulWidget {
   const StudyGroupScreen({super.key});
@@ -58,6 +60,96 @@ class _StudyGroupScreenState extends State<StudyGroupScreen> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.orange,
+        foregroundColor: Colors.white,
+        onPressed: _showCreateDialog,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Future<void> _showCreateDialog() async {
+    final nameCtrl = TextEditingController();
+    final subjectCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final locationCtrl = TextEditingController();
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('New Study Group',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _dialogField(nameCtrl, 'Group name'),
+              const SizedBox(height: 10),
+              _dialogField(subjectCtrl, 'Subject'),
+              const SizedBox(height: 10),
+              _dialogField(descCtrl, 'Description'),
+              const SizedBox(height: 10),
+              _dialogField(locationCtrl, 'Location'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, {
+              'name': nameCtrl.text.trim(),
+              'subject': subjectCtrl.text.trim(),
+              'description': descCtrl.text.trim(),
+              'location': locationCtrl.text.trim(),
+            }),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+    if (result == null || (result['name'] ?? '').isEmpty) return;
+    final group = StudyGroupModel(
+      id: '',
+      name: result['name']!,
+      subject: result['subject'] ?? '',
+      description: result['description'] ?? '',
+      location: result['location'] ?? '',
+      time: 'Evenings',
+      maxMembers: 8,
+      members: const [],
+      creatorId: _myUid ?? '',
+      creatorName: _userName,
+    );
+    try {
+      await _groupService.createGroup(group);
+      if (mounted) setState(() {});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Study group created!')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not create group')),
+        );
+      }
+    }
+  }
+
+  Widget _dialogField(TextEditingController ctrl, String hint) {
+    return TextField(
+      controller: ctrl,
+      style: GoogleFonts.poppins(fontSize: 14),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+        isDense: true,
+        border: const OutlineInputBorder(),
+      ),
     );
   }
 
@@ -84,7 +176,7 @@ class _StudyGroupScreenState extends State<StudyGroupScreen> {
           CircleAvatar(
             radius: 20,
             backgroundColor: AppTheme.orange.withValues(alpha: 0.15),
-            backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
+            backgroundImage: imageProviderFor(_photoUrl),
             child: _photoUrl == null
                 ? Text(
                     _userName.isNotEmpty ? _userName[0].toUpperCase() : 'S',
@@ -143,6 +235,44 @@ class _StudyGroupScreenState extends State<StudyGroupScreen> {
     );
   }
 
+  Future<void> _joinGroup(String id) async {
+    try {
+      await _groupService.joinGroup(id);
+      if (mounted) setState(() {});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Joined group!')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not join group')),
+        );
+      }
+    }
+  }
+
+  Future<void> _leaveGroup(String id) async {
+    try {
+      await _groupService.leaveGroup(id);
+      if (mounted) setState(() {});
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not leave group')),
+        );
+      }
+    }
+  }
+
+  void _openChat(StudyGroupModel group) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ChatScreen(group: group)),
+    );
+  }
+
   Widget _buildGroupList() {
     return StreamBuilder<List<StudyGroupModel>>(
       stream: _groupService.getGroups(),
@@ -168,8 +298,13 @@ class _StudyGroupScreenState extends State<StudyGroupScreen> {
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
           itemCount: groups.length,
-          itemBuilder: (context, index) =>
-              _GroupCard(group: groups[index], myUid: _myUid),
+          itemBuilder: (context, index) => _GroupCard(
+            group: groups[index],
+            myUid: _myUid,
+            onJoin: _joinGroup,
+            onLeave: _leaveGroup,
+            onChat: _openChat,
+          ),
         );
       },
     );
@@ -179,7 +314,16 @@ class _StudyGroupScreenState extends State<StudyGroupScreen> {
 class _GroupCard extends StatelessWidget {
   final StudyGroupModel group;
   final String? myUid;
-  const _GroupCard({required this.group, required this.myUid});
+  final void Function(String) onJoin;
+  final void Function(String) onLeave;
+  final void Function(StudyGroupModel) onChat;
+  const _GroupCard({
+    required this.group,
+    required this.myUid,
+    required this.onJoin,
+    required this.onLeave,
+    required this.onChat,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -270,12 +414,12 @@ class _GroupCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _actionButton('Chat', Icons.chat_bubble_outline,
-                      AppTheme.orange, () {}),
+                      AppTheme.orange, () => onChat(group)),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _actionButton('Leave', Icons.logout,
-                      Colors.grey, () {}),
+                      Colors.grey, () => onLeave(group.id)),
                 ),
               ],
             )
@@ -284,12 +428,12 @@ class _GroupCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _actionButton('Chat', Icons.chat_bubble_outline,
-                      AppTheme.orange, () {}),
+                      AppTheme.orange, () => onChat(group)),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _actionButton('Leave', Icons.logout,
-                      Colors.grey, () {}),
+                      Colors.grey, () => onLeave(group.id)),
                 ),
               ],
             )
@@ -297,7 +441,7 @@ class _GroupCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: _actionButton('Join Group', Icons.add,
-                  AppTheme.orange, () {}),
+                  AppTheme.orange, () => onJoin(group.id)),
             ),
         ],
       ),

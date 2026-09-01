@@ -6,12 +6,15 @@ import 'api_client.dart';
 class ChatService {
   static final _api = ApiClient.instance;
 
-  // Real-time group messages stream (backend polls Firestore).
+  // Group messages stream (short poll interval for near real-time chat).
   Stream<List<ChatModel>> getMessages(String groupId) {
-    return pollStream(() async {
-      final data = await _api.get('/study-groups/$groupId/messages/');
-      return _parseMessages(data);
-    });
+    return pollStream(
+      () async {
+        final data = await _api.get('/study-groups/$groupId/messages/');
+        return _parseMessages(data);
+      },
+      interval: const Duration(seconds: 5),
+    );
   }
 
   // Send group message.
@@ -30,30 +33,36 @@ class ChatService {
 
   // Streams every conversation belonging to the logged-in user.
   Stream<List<ConversationModel>> getInbox() {
-    return pollStream(() async {
-      final data = await _api.get('/conversations/');
-      if (data is! List) return <ConversationModel>[];
-      return data
-          .map((e) => ConversationModel.fromMap(
-              Map<String, dynamic>.from(e as Map), e['id'].toString()))
-          .toList();
-    });
+    return pollStream(
+      () async {
+        final data = await _api.get('/conversations/');
+        if (data is! List) return <ConversationModel>[];
+        return data
+            .map((e) => ConversationModel.fromMap(
+                Map<String, dynamic>.from(e as Map), e['id'].toString()))
+            .toList();
+      },
+      interval: const Duration(seconds: 30),
+    );
   }
 
   // Streams 1-to-1 direct messages (empty while no conversation exists yet).
   Stream<List<ChatModel>> getDirectMessages(String otherUserId) {
-    return pollStream(() async {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null || otherUserId.trim().isEmpty) return <ChatModel>[];
-      final convId = conversationIdFor(uid, otherUserId);
-      try {
-        final data = await _api.get('/conversations/$convId/messages/');
-        return _parseMessages(data);
-      } on ApiException catch (e) {
-        if (e.statusCode == 404) return <ChatModel>[];
-        rethrow;
-      }
-    });
+    return pollStream(
+      () async {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid == null || otherUserId.trim().isEmpty) return <ChatModel>[];
+        final convId = conversationIdFor(uid, otherUserId);
+        try {
+          final data = await _api.get('/conversations/$convId/messages/');
+          return _parseMessages(data);
+        } on ApiException catch (e) {
+          if (e.statusCode == 404) return <ChatModel>[];
+          rethrow;
+        }
+      },
+      interval: const Duration(seconds: 5),
+    );
   }
 
   // Sends a 1-to-1 direct message.

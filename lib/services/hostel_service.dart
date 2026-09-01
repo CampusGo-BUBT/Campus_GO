@@ -31,6 +31,25 @@ class HostelService {
     await _api.delete('/hostels/$hostelId/');
   }
 
+  Future<void> updateHostel(String hostelId, HostelModel hostel,
+      {File? image}) async {
+    final fields = hostel.toMap()
+      ..remove('id')
+      ..remove('createdAt')
+      ..remove('userId')
+      ..remove('ownerName')
+      ..remove('imageUrl')
+      ..remove('images')
+      ..remove('rating')
+      ..remove('reviewCount');
+    if (image != null) {
+      await _api.patchMultipart('/hostels/$hostelId/',
+          fields: fields, files: {'image': image});
+    } else {
+      await _api.patch('/hostels/$hostelId/', body: fields);
+    }
+  }
+
   Future<List<HostelModel>> _fetch(String query) async {
     final data = await _api.get('/hostels/$query');
     if (data is! List) return const [];

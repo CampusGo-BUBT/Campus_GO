@@ -26,7 +26,7 @@ class ConversationModel {
     return ConversationModel(
       id: id,
       participants: (map['participants'] is List)
-          ? map['participants'].map((e) => e.toString()).toList()
+          ? List<String>.from(map['participants'].map((e) => e.toString()))
           : const [],
       lastMessage: map['lastMessage']?.toString() ?? '',
       lastMessageTime: dt,

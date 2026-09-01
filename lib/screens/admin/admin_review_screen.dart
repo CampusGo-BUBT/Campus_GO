@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../services/admin_service.dart';
+import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 
 class AdminReviewScreen extends StatefulWidget {
@@ -47,6 +49,16 @@ class _AdminReviewScreenState extends State<AdminReviewScreen> {
         title: Text('Pending Requests',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              final auth = Provider.of<AuthService>(context, listen: false);
+              await auth.logoutAndGoToLogin();
+            },
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -67,13 +79,21 @@ class _AdminReviewScreenState extends State<AdminReviewScreen> {
   }
 }
 
-class _ReviewCard extends StatelessWidget {
+class _ReviewCard extends StatefulWidget {
   final Map<String, dynamic> item;
   final void Function(String, String, String) onAction;
   const _ReviewCard({required this.item, required this.onAction});
 
   @override
+  State<_ReviewCard> createState() => _ReviewCardState();
+}
+
+class _ReviewCardState extends State<_ReviewCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final item = widget.item;
     final kind = item['kind'] ?? 'post';
     final title = item['title'] ?? item['caption'] ?? item['name'] ?? 'Untitled';
     final author = item['authorName'] ?? item['posterName'] ?? item['ownerName'] ?? 'Unknown';
@@ -83,7 +103,19 @@ class _ReviewCard extends StatelessWidget {
       'job': AppTheme.primary,
       'hostel': AppTheme.secondary,
       'tutor': AppTheme.orange,
+      'book': AppTheme.cyan,
+      'notice': AppTheme.cyan,
     }[kind] ?? AppTheme.primary;
+
+    final details = <MapEntry<String, String>>[];
+    item.forEach((k, v) {
+      if (k == 'id' || k == 'kind' || k == 'status' || k == 'createdAt') return;
+      if (v == null) return;
+      if (v is List && v.isEmpty) return;
+      final s = v is List ? v.join(', ') : v.toString();
+      if (s.trim().isEmpty) return;
+      details.add(MapEntry(k, s));
+    });
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -117,8 +149,9 @@ class _ReviewCard extends StatelessWidget {
                         color: kindColor)),
               ),
               const Spacer(),
-              Text('${item['applicantCount'] ?? ''}',
-                  style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey)),
+              if (item['applicantCount'] != null)
+                Text('${item['applicantCount']} applicants',
+                    style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey)),
             ],
           ),
           const SizedBox(height: 10),
@@ -132,7 +165,7 @@ class _ReviewCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text('By: $author',
               style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
-          if (desc.isNotEmpty) ...[
+          if (desc.isNotEmpty && !_expanded) ...[
             const SizedBox(height: 4),
             Text(desc,
                 maxLines: 3,
@@ -140,6 +173,57 @@ class _ReviewCard extends StatelessWidget {
                 style: GoogleFonts.poppins(
                     fontSize: 12, color: Colors.grey.shade500)),
           ],
+          // Details expansion
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Icon(_expanded ? Icons.expand_less : Icons.expand_more,
+                      size: 18, color: AppTheme.primary),
+                  const SizedBox(width: 4),
+                  Text(_expanded ? 'Hide Details' : 'View Details',
+                      style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primary)),
+                ],
+              ),
+            ),
+          ),
+          if (_expanded)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF6F7FB),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: details.map((d) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: RichText(
+                      text: TextSpan(
+                        style: GoogleFonts.poppins(
+                            fontSize: 12, color: const Color(0xFF1E293B)),
+                        children: [
+                          TextSpan(
+                            text: '${d.key}: ',
+                            style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1E293B)),
+                          ),
+                          TextSpan(text: d.value),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -153,7 +237,7 @@ class _ReviewCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10)),
                     elevation: 0,
                   ),
-                  onPressed: () => onAction(kind, item['id'], 'approve'),
+                  onPressed: () => widget.onAction(kind, item['id'], 'approve'),
                   child: Text('Approve',
                       style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
                 ),
@@ -168,7 +252,7 @@ class _ReviewCard extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
-                  onPressed: () => onAction(kind, item['id'], 'reject'),
+                  onPressed: () => widget.onAction(kind, item['id'], 'reject'),
                   child: Text('Reject',
                       style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
                 ),

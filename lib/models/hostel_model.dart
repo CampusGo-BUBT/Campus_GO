@@ -48,13 +48,16 @@ class HostelModel {
       dt = DateTime.tryParse(raw);
     }
 
-    List<String> parsedFacs =
-        map['facilitiesList'] is List ? map['facilitiesList'].map((e) => e.toString()).toList() : [];
+    List<String> parsedFacs = map['facilitiesList'] is List
+        ? List<String>.from(map['facilitiesList'].map((e) => e.toString()))
+        : [];
     if (parsedFacs.isEmpty && (map['facilities']?.toString() ?? '').isNotEmpty) {
       parsedFacs = map['facilities'].toString().split(',').map((e) => e.trim()).toList();
     }
 
-    List<String> imgs = map['images'] is List ? map['images'].map((e) => e.toString()).toList() : [];
+    List<String> imgs = map['images'] is List
+        ? List<String>.from(map['images'].map((e) => e.toString()))
+        : [];
 
     return HostelModel(
       id: id,

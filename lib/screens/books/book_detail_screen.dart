@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/book_model.dart';
 import '../../services/book_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/smart_image.dart';
 import '../messages/chat_screen.dart';
 
 class BookDetailScreen extends StatelessWidget {
@@ -102,18 +102,7 @@ class BookDetailScreen extends StatelessWidget {
                     fit: StackFit.expand,
                     children: [
                       book.imageUrl.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: book.imageUrl,
-                              fit: BoxFit.cover,
-                              placeholder: (_, _) => Container(
-                                color: Colors.grey.shade200,
-                                child: const Center(child: CircularProgressIndicator()),
-                              ),
-                              errorWidget: (_, _, _) => Container(
-                                color: AppTheme.primary.withValues(alpha: 0.1),
-                                child: const Icon(Icons.book, size: 80, color: AppTheme.primary),
-                              ),
-                            )
+                          ? SmartImage(book.imageUrl, fit: BoxFit.cover)
                           : Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
@@ -387,11 +376,7 @@ class BookDetailScreen extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     child: b.imageUrl.isNotEmpty
-                                        ? CachedNetworkImage(
-                                            imageUrl: b.imageUrl,
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                          )
+                                        ? SmartImage(b.imageUrl, fit: BoxFit.cover)
                                         : Container(
                                             color: AppTheme.primary.withValues(alpha: 0.1),
                                             child: const Center(

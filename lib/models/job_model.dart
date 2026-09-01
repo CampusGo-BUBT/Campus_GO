@@ -54,10 +54,12 @@ class JobModel {
       dt = DateTime.tryParse(raw);
     }
 
-    List<String> reqs =
-        map['requirements'] is List ? map['requirements'].map((e) => e.toString()).toList() : [];
-    List<String> benfs =
-        map['benefits'] is List ? map['benefits'].map((e) => e.toString()).toList() : [];
+    List<String> reqs = map['requirements'] is List
+        ? List<String>.from(map['requirements'].map((e) => e.toString()))
+        : [];
+    List<String> benfs = map['benefits'] is List
+        ? List<String>.from(map['benefits'].map((e) => e.toString()))
+        : [];
 
     return JobModel(
       id: id,

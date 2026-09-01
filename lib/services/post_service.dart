@@ -10,7 +10,12 @@ class PostService {
   Stream<List<FeedPost>> postsStreamByType(String type) =>
       pollStream(() => _fetchByType(type));
 
-  Stream<List<FeedPost>> savedPostsStream() => pollStream(() => _fetch('/saved/'));
+  Stream<List<FeedPost>> savedPostsStream() => pollStream(() => _fetchSaved());
+
+  Future<List<FeedPost>> _fetchSaved() async {
+    final data = await _api.get('/posts/saved/');
+    return _parse(data);
+  }
 
   Future<void> createPost({
     required String caption,
@@ -33,6 +38,23 @@ class PostService {
   Future<void> toggleSave(String postId, bool currentlySaved) async {
     await _api.post('/posts/$postId/save/',
         body: {'currentlySaved': currentlySaved});
+  }
+
+  Future<void> updatePost(String postId,
+      {String? caption, String? type, File? imageFile}) async {
+    final body = <String, dynamic>{
+      'caption': ?caption,
+      'type': ?type,
+    };    if (imageFile != null) {
+      await _api.patchMultipart('/posts/$postId/',
+          fields: body, files: {'image': imageFile});
+    } else {
+      await _api.patch('/posts/$postId/', body: body);
+    }
+  }
+
+  Future<void> deletePost(String postId) async {
+    await _api.delete('/posts/$postId/');
   }
 
   Future<List<FeedPost>> _fetch(String suffix) async {

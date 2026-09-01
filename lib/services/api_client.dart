@@ -164,7 +164,7 @@ class ApiClient {
 /// Errors are swallowed so the UI keeps its last good data instead of crashing.
 Stream<List<T>> pollStream<T>(
   Future<List<T>> Function() fetch, {
-  Duration interval = const Duration(minutes: 5),
+  Duration interval = const Duration(seconds: 20),
 }) {
   final controller = StreamController<List<T>>();
   Future<void> tick() async {
@@ -172,10 +172,9 @@ Stream<List<T>> pollStream<T>(
       final data = await fetch();
       if (!controller.isClosed) {
         controller.add(data);
-        print('[pollStream] emitted ${(data as List).length} items');
       }
-    } catch (e) {
-      print('[pollStream] FETCH ERROR: $e');
+    } catch (_) {
+      // keep last emitted data on transient errors
     }
   }
 

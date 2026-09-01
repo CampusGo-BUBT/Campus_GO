@@ -26,6 +26,21 @@ class TutorService {
         body: {'note': note, 'phone': phone});
   }
 
+  Future<void> updateTutor(String tutorId, TutorModel tutor) async {
+    final fields = tutor.toMap()
+      ..remove('id')
+      ..remove('postedAt')
+      ..remove('userId')
+      ..remove('posterName')
+      ..remove('applicants')
+      ..remove('jobId');
+    await _api.patch('/tutors/$tutorId/', body: fields);
+  }
+
+  Future<void> deleteTutor(String tutorId) async {
+    await _api.delete('/tutors/$tutorId/');
+  }
+
   Stream<List<TutorModel>> searchTutors(String query) {
     final q = query.trim();
     return pollStream(() => _fetch(q.isEmpty ? '' : '?search=$q'));

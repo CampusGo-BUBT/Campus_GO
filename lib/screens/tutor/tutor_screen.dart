@@ -11,6 +11,7 @@ import '../../services/user_service.dart';
 import '../../services/saved_posts_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../widgets/smart_image.dart';
 import '../../widgets/custom_bottom_nav_bar.dart';
 import '../home/home_screen.dart';
 import '../messages/inbox_screen.dart';
@@ -151,7 +152,7 @@ class _TutorScreenState extends State<TutorScreen> {
                       child: _buildDropdown(
                         'Tutoring Type',
                         selectedType,
-                        ['Home Tutoring', 'Online Tutoring'],
+                        ['Home Tutoring', 'Online', 'Coaching'],
                         (val) => setModal(() => selectedType = val!),
                       ),
                     ),
@@ -418,9 +419,7 @@ class _TutorScreenState extends State<TutorScreen> {
                                 radius: 22,
                                 backgroundColor:
                                     AppTheme.primary.withValues(alpha: 0.12),
-                                backgroundImage: _photoUrl != null
-                                    ? NetworkImage(_photoUrl!)
-                                    : null,
+                                backgroundImage: imageProviderFor(_photoUrl),
                                 child: _photoUrl == null
                                     ? Text(
                                         _userName.isNotEmpty

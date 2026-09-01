@@ -33,7 +33,7 @@ class StudyGroupModel {
       time: data['time']?.toString() ?? '',
       maxMembers: (data['maxMembers'] as num?)?.toInt() ?? 5,
       members: data['members'] is List
-          ? data['members'].map((e) => e.toString()).toList()
+          ? List<String>.from(data['members'].map((e) => e.toString()))
           : const [],
       creatorId: data['creatorId']?.toString() ?? '',
       creatorName: data['creatorName']?.toString() ?? 'Unknown',

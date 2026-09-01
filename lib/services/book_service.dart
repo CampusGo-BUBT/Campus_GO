@@ -28,6 +28,20 @@ class BookService {
     await _api.delete('/books/$bookId/');
   }
 
+  Future<void> updateBook(String bookId, BookModel book, {File? image}) async {
+    final fields = book.toMap()
+      ..remove('id')
+      ..remove('createdAt')
+      ..remove('userId')
+      ..remove('sellerName')
+      ..remove('imageUrl');
+    if (image != null) {
+      await _api.patchMultipart('/books/$bookId/', fields: fields, files: {'image': image});
+    } else {
+      await _api.patch('/books/$bookId/', body: fields);
+    }
+  }
+
   Future<List<BookModel>> _fetch(String query) async {
     final data = await _api.get('/books/$query');
     if (data is! List) return const [];

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
@@ -14,6 +13,8 @@ import 'screens/home/home_screen.dart';
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Handle background messaging
 }
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +41,7 @@ class CampusGoApp extends StatelessWidget {
     final themeService = context.watch<ThemeService>();
     return MaterialApp(
       title: 'CampusGo',
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData.light(useMaterial3: true),
       darkTheme: ThemeData.dark(useMaterial3: true),

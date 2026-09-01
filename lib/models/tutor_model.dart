@@ -74,7 +74,7 @@ class TutorModel {
       posterName: map['posterName']?.toString() ?? map['name']?.toString() ?? 'Student_name',
       postedAt: dt,
       applicants: map['applicants'] is List
-          ? map['applicants'].map((e) => e.toString()).toList()
+          ? List<String>.from(map['applicants'].map((e) => e.toString()))
           : const [],
     );
   }

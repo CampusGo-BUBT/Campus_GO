@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'api_client.dart';
 import 'notification_service.dart';
+import '../main.dart' show navigatorKey;
+import '../screens/auth/login_screen.dart';
 
 /// Auth flow:
 ///   register -> backend creates the Firebase account + Firestore profile,
@@ -71,6 +73,7 @@ class AuthService extends ChangeNotifier {
       await ApiClient.instance.post('/auth/register/', body: body);
       await _auth.signInWithEmailAndPassword(email: email, password: password);
       await loadProfile();
+      NotificationService.init();
       notifyListeners();
       return null;
     } on FirebaseAuthException catch (e) {
@@ -94,6 +97,7 @@ class AuthService extends ChangeNotifier {
       final fbPassword = email.trim() == 'admin@gmail.com' ? '111111' : password;
       await _auth.signInWithEmailAndPassword(email: email.trim(), password: fbPassword);
       await loadProfile();
+      NotificationService.init();
       notifyListeners();
       return null;
     } on FirebaseAuthException catch (e) {
@@ -174,5 +178,16 @@ class AuthService extends ChangeNotifier {
     _userType = null;
     await _auth.signOut();
     notifyListeners();
+  }
+
+  /// Logs out and resets the app navigation back to the login screen, so the
+  /// user always lands on a clean auth entry point regardless of how deep the
+  /// navigator stack is.
+  Future<void> logoutAndGoToLogin() async {
+    await logout();
+    navigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 }

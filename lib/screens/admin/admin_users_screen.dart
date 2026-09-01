@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../services/admin_service.dart';
+import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 
 class AdminUsersScreen extends StatefulWidget {
@@ -53,6 +55,16 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         title: Text('Users',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              final auth = Provider.of<AuthService>(context, listen: false);
+              await auth.logoutAndGoToLogin();
+            },
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

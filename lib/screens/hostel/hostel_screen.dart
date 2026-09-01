@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,6 +7,8 @@ import '../../services/hostel_service.dart';
 import '../../services/user_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../widgets/smart_image.dart';
+import 'hostel_detail_screen.dart';
 
 class HostelScreen extends StatefulWidget {
   const HostelScreen({super.key});
@@ -18,7 +19,9 @@ class HostelScreen extends StatefulWidget {
 
 class _HostelScreenState extends State<HostelScreen> {
   final HostelService _hostelService = HostelService();
+  final TextEditingController _searchCtrl = TextEditingController();
   String _selectedFilter = 'All';
+  String _searchQuery = '';
   String _userName = 'Student';
   String _userDept = '';
   String? _photoUrl;
@@ -27,6 +30,12 @@ class _HostelScreenState extends State<HostelScreen> {
   void initState() {
     super.initState();
     _loadUser();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -48,6 +57,12 @@ class _HostelScreenState extends State<HostelScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.secondary,
+        foregroundColor: Colors.white,
+        onPressed: _showAddHostelDialog,
+        child: const Icon(Icons.add),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -58,6 +73,150 @@ class _HostelScreenState extends State<HostelScreen> {
             Expanded(child: _buildHostelList()),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showAddHostelDialog() {
+    final nameCtrl = TextEditingController();
+    final locationCtrl = TextEditingController();
+    final rentCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    String selectedGender = 'Boys';
+    bool isLoading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            left: 20, right: 20, top: 16,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 44, height: 4,
+                    decoration: BoxDecoration(color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Container(padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                          color: AppTheme.secondary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                      child: const Icon(Icons.home_work, color: AppTheme.secondary, size: 20)),
+                  const SizedBox(width: 10),
+                  Text('Post a Hostel',
+                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                ]),
+                const SizedBox(height: 16),
+                _hfield(nameCtrl, 'Hostel Name *', Icons.home_work),
+                const SizedBox(height: 10),
+                _hfield(locationCtrl, 'Location *', Icons.location_on),
+                const SizedBox(height: 10),
+                _hfield(rentCtrl, 'Rent (৳/month) *', Icons.attach_money, type: TextInputType.number),
+                const SizedBox(height: 10),
+                _hfield(phoneCtrl, 'Contact Phone', Icons.phone, type: TextInputType.phone),
+                const SizedBox(height: 10),
+                _hfield(descCtrl, 'Description', Icons.description_outlined),
+                const SizedBox(height: 14),
+                Text('Gender:', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8, runSpacing: 8,
+                  children: ['Boys', 'Girls', 'Family'].map((g) {
+                    final sel = selectedGender == g;
+                    return GestureDetector(
+                      onTap: () => setModal(() => selectedGender = g),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: sel ? AppTheme.secondary : AppTheme.secondary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(16)),
+                        child: Text(g,
+                            style: GoogleFonts.poppins(
+                                color: sel ? Colors.white : AppTheme.secondary,
+                                fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity, height: 52,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.secondary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                    onPressed: isLoading ? null : () async {
+                      if (nameCtrl.text.trim().isEmpty || locationCtrl.text.trim().isEmpty || rentCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Name, location and rent are required!')));
+                        return;
+                      }
+                      setModal(() => isLoading = true);
+                      try {
+                        final hostel = HostelModel(
+                          id: '',
+                          name: nameCtrl.text.trim(),
+                          type: selectedGender,
+                          location: locationCtrl.text.trim(),
+                          rent: double.tryParse(rentCtrl.text.trim()) ?? 0,
+                          facilities: '',
+                          phone: phoneCtrl.text.trim(),
+                          userId: '',
+                          ownerName: '',
+                          gender: selectedGender,
+                          distance: '',
+                          description: descCtrl.text.trim(),
+                        );
+                        await _hostelService.addHostel(hostel);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                      } catch (e) {
+                        setModal(() => isLoading = false);
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(content: Text('Could not post hostel: $e')));
+                        }
+                      }
+                    },
+                    child: isLoading
+                        ? const SizedBox(width: 20, height: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text('Post Hostel', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _hfield(TextEditingController c, String hint, IconData icon, {TextInputType type = TextInputType.text}) {
+    return TextField(
+      controller: c,
+      keyboardType: type,
+      style: GoogleFonts.poppins(fontSize: 13),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400, fontSize: 13),
+        prefixIcon: Icon(icon, color: AppTheme.secondary, size: 18),
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       ),
     );
   }
@@ -85,7 +244,7 @@ class _HostelScreenState extends State<HostelScreen> {
           CircleAvatar(
             radius: 20,
             backgroundColor: AppTheme.secondary.withValues(alpha: 0.15),
-            backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
+            backgroundImage: imageProviderFor(_photoUrl),
             child: _photoUrl == null
                 ? Text(
                     _userName.isNotEmpty ? _userName[0].toUpperCase() : 'S',
@@ -130,7 +289,9 @@ class _HostelScreenState extends State<HostelScreen> {
               color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
         ),
         child: TextField(
+          controller: _searchCtrl,
           style: GoogleFonts.poppins(fontSize: 14),
+          onChanged: (v) => setState(() => _searchQuery = v.trim()),
           decoration: InputDecoration(
             hintText: 'Search hostel name,location...',
             hintStyle: GoogleFonts.poppins(
@@ -209,7 +370,14 @@ class _HostelScreenState extends State<HostelScreen> {
           return const ShimmerList(count: 3, itemHeight: 240);
         }
         final hostels = snapshot.data ?? [];
-        if (hostels.isEmpty) {
+        final filtered = _searchQuery.isEmpty
+            ? hostels
+            : hostels
+                .where((h) =>
+                    h.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                    h.location.toLowerCase().contains(_searchQuery.toLowerCase()))
+                .toList();
+        if (filtered.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -225,8 +393,9 @@ class _HostelScreenState extends State<HostelScreen> {
         }
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-          itemCount: hostels.length,
-          itemBuilder: (context, index) => _HostelCard(hostel: hostels[index]),
+          itemCount: filtered.length,
+          itemBuilder: (context, index) =>
+              _HostelCard(hostel: filtered[index]),
         );
       },
     );
@@ -243,21 +412,26 @@ class _HostelCard extends StatelessWidget {
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => HostelDetailScreen(hostel: hostel)),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Image
@@ -265,16 +439,7 @@ class _HostelCard extends StatelessWidget {
             height: 160,
             width: double.infinity,
             child: hostel.imageUrl.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: hostel.imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) =>
-                        Container(color: Colors.grey.shade200),
-                    errorWidget: (_, __, ___) => Container(
-                        color: AppTheme.secondary.withValues(alpha: 0.1),
-                        child: const Icon(Icons.home_work,
-                            color: AppTheme.secondary, size: 50)),
-                  )
+                ? SmartImage(hostel.imageUrl, fit: BoxFit.cover)
                 : Container(
                     color: AppTheme.secondary.withValues(alpha: 0.1),
                     child: const Icon(Icons.home_work_rounded,
@@ -350,6 +515,7 @@ class _HostelCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

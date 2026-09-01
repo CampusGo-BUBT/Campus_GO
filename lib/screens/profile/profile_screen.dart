@@ -6,7 +6,10 @@ import 'dart:io';
 import '../../services/auth_service.dart';
 import '../../services/api_client.dart';
 import '../../services/theme_service.dart';
+import '../../services/profile_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/smart_image.dart';
+import 'my_listings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -50,6 +53,58 @@ class _ProfileScreenState extends State<ProfileScreen>
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _editProfileFields() async {
+    final nameCtrl = TextEditingController(text: _userData?['name'] ?? '');
+    final univCtrl = TextEditingController(text: _userData?['university'] ?? '');
+    final idCtrl = TextEditingController(text: _userData?['studentId'] ?? '');
+    final phoneCtrl = TextEditingController(text: _userData?['phone'] ?? '');
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Edit Profile', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _editField(nameCtrl, 'Name'),
+            _editField(univCtrl, 'University'),
+            _editField(idCtrl, 'Student ID'),
+            _editField(phoneCtrl, 'Phone'),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              final data = await ProfileService().updateProfileFields(
+                name: nameCtrl.text.trim(),
+                university: univCtrl.text.trim(),
+                studentId: idCtrl.text.trim(),
+                phone: phoneCtrl.text.trim(),
+              );
+              if (!mounted) return;
+              setState(() => _userData = data);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _editField(TextEditingController ctrl, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: ctrl,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
   }
 
   Future<void> _pickAndUploadAvatar() async {
@@ -103,9 +158,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
-              final nav = Navigator.of(context);
-              await auth.logout();
-              if (mounted) nav.popUntil((r) => r.isFirst);
+              await auth.logoutAndGoToLogin();
             },
           ),
         ],
@@ -152,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 child: _uploading
                                     ? const CircularProgressIndicator(color: AppTheme.primary)
                                     : photoUrl != null
-                                    ? Image.network(photoUrl, fit: BoxFit.cover)
+                                    ? SmartImage(photoUrl, fit: BoxFit.cover)
                                     : Center(child: Text(
                                     name.isNotEmpty ? name[0].toUpperCase() : 'S',
                                     style: GoogleFonts.poppins(
@@ -204,6 +257,25 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                       const SizedBox(height: 16),
 
+                      // ── Content management shortcuts ──
+                      _actionTile(
+                        'My Listings',
+                        'Edit or delete your posts, books, jobs & more',
+                        Icons.category_outlined,
+                        AppTheme.primary,
+                        () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const MyListingsScreen())),
+                      ),
+                      const SizedBox(height: 10),
+                      _actionTile(
+                        'Edit Profile Info',
+                        'Update your name, university, id & phone',
+                        Icons.edit_outlined,
+                        AppTheme.green,
+                        _editProfileFields,
+                      ),
+                      const SizedBox(height: 16),
+
                       // Dark mode toggle
                       Consumer<ThemeService>(
                         builder: (context, ts, _) => _settingsTile(
@@ -223,9 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       // Logout
                       GestureDetector(
                         onTap: () async {
-                          final nav = Navigator.of(context);
-                          await auth.logout();
-                          if (mounted) nav.popUntil((r) => r.isFirst);
+                          await auth.logoutAndGoToLogin();
                         },
                         child: Container(
                           width: double.infinity,
@@ -253,6 +323,39 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _actionTile(String label, String subtitle, IconData icon, Color color,
+      VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardTheme.color ?? Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8, offset: const Offset(0, 3))],
+        ),
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(subtitle, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500)),
+            ]),
+          ),
+          Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+        ]),
       ),
     );
   }

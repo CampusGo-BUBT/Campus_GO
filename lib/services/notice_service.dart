@@ -23,6 +23,16 @@ class NoticeService {
     await _api.delete('/notices/$noticeId/');
   }
 
+  Future<void> updateNotice(String noticeId, NoticeModel notice) async {
+    final fields = notice.toMap()
+      ..remove('id')
+      ..remove('createdAt')
+      ..remove('userId')
+      ..remove('authorName')
+      ..remove('attachmentUrl');
+    await _api.patch('/notices/$noticeId/', body: fields);
+  }
+
   Future<List<NoticeModel>> _fetch(String query) async {
     final data = await _api.get('/notices/$query');
     if (data is! List) return const [];

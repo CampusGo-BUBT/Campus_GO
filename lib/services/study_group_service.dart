@@ -23,6 +23,19 @@ class StudyGroupService {
     await _api.post('/study-groups/$groupId/leave/');
   }
 
+  Future<void> updateGroup(String groupId, StudyGroupModel group) async {
+    final fields = group.toMap()
+      ..remove('id')
+      ..remove('members')
+      ..remove('creatorId')
+      ..remove('creatorName');
+    await _api.patch('/study-groups/$groupId/', body: fields);
+  }
+
+  Future<void> deleteGroup(String groupId) async {
+    await _api.delete('/study-groups/$groupId/');
+  }
+
   Future<List<StudyGroupModel>> _fetch(String query) async {
     final data = await _api.get('/study-groups/$query');
     if (data is! List) return const [];

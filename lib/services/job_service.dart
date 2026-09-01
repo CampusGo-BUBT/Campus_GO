@@ -21,6 +21,16 @@ class JobService {
     await _api.delete('/jobs/$jobId/');
   }
 
+  Future<void> updateJob(String jobId, JobModel job) async {
+    final fields = job.toMap()
+      ..remove('id')
+      ..remove('createdAt')
+      ..remove('userId')
+      ..remove('posterName')
+      ..remove('applicantCount');
+    await _api.patch('/jobs/$jobId/', body: fields);
+  }
+
   // Demo data is seeded server-side (manage.py seed); no-op kept for API parity.
   Future<void> seedJobsIfEmpty() async {}
 

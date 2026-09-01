@@ -6,6 +6,7 @@ import '../../models/conversation_model.dart';
 import '../../services/chat_service.dart';
 import '../../services/user_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/smart_image.dart';
 import '../../widgets/custom_bottom_nav_bar.dart';
 import '../home/home_screen.dart';
 import '../saved/saved_posts_screen.dart';
@@ -282,7 +283,7 @@ class _InboxScreenState extends State<InboxScreen>
         border: Border.all(color: borderColor, width: 2),
       ),
       child: CircleAvatar(
-        backgroundImage: NetworkImage(url),
+        backgroundImage: imageProviderFor(url),
       ),
     );
   }
@@ -429,7 +430,7 @@ class _ConversationTile extends StatelessWidget {
                 CircleAvatar(
                   radius: 26,
                   backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
-                  backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+                  backgroundImage: imageProviderFor(photoUrl),
                   child: photoUrl == null
                       ? Text(
                           name.isNotEmpty ? name[0].toUpperCase() : 'U',

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/hostel_model.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/smart_image.dart';
 import '../messages/chat_screen.dart';
 
 class HostelDetailScreen extends StatelessWidget {
@@ -86,15 +86,7 @@ class HostelDetailScreen extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
                   child: hostel.imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: hostel.imageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (ctx, url) => Container(color: Colors.grey.shade200),
-                          errorWidget: (ctx, url, err) => Container(
-                            color: AppTheme.secondary.withValues(alpha: 0.1),
-                            child: const Icon(Icons.home_work, size: 70, color: AppTheme.secondary),
-                          ),
-                        )
+                      ? SmartImage(hostel.imageUrl, fit: BoxFit.cover)
                       : Container(
                           color: AppTheme.secondary.withValues(alpha: 0.1),
                           child: const Center(
