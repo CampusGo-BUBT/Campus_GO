@@ -18,7 +18,7 @@ class BookDto(serializers.Serializer):
     phone = serializers.CharField(required=False, allow_blank=True, max_length=20)
     userId = serializers.CharField(read_only=True, default="")
     sellerName = serializers.CharField(read_only=True, default="")
-    imageUrl = serializers.CharField(read_only=True, default="", allow_null=True)
+    imageUrl = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
     description = serializers.CharField(required=False, allow_blank=True)
     rating = serializers.FloatField(read_only=True, default=4.5)
     reviewCount = serializers.IntegerField(read_only=True, default=0)

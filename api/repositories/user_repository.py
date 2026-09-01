@@ -1,11 +1,8 @@
-"""Data access for Firestore `users/{uid}` documents."""
-from google.cloud.firestore import SERVER_TIMESTAMP
-
-from api.services import firebase_service
-from api.repositories.base import FirestoreRepository
+"""Data access for MongoDB `users` documents."""
+from api.repositories.mongo_base import MongoRepository
 
 
-class UserRepository(FirestoreRepository):
+class UserRepository(MongoRepository):
     collection_name = "users"
     defaults = {
         "name": "",
@@ -17,26 +14,33 @@ class UserRepository(FirestoreRepository):
         "phone": "",
         "photoUrl": "",
         "fcmToken": "",
+        "isBanned": False,
         "createdAt": None,
     }
 
     def get_by_uid(self, uid):
         return self.get(uid)
 
-    def create(self, uid, data: dict):
-        payload = dict(data)
-        payload.setdefault("createdAt", SERVER_TIMESTAMP)
-        payload.setdefault("userType", "student")
-        self.ref().document(uid).set(payload)
+    def all_users(self):
+        return self._list(sort_key="createdAt", reverse=True)
+
+    def set_banned(self, uid, banned: bool):
+        self.col().update_one({"_id": str(uid)}, {"$set": {"isBanned": banned}})
         return self.get(uid)
 
+    def create(self, uid, data: dict):
+        payload = dict(data)
+        payload.setdefault("createdAt", self._now())
+        payload.setdefault("userType", "student")
+        return self._insert(uid, payload)
+
     def update(self, uid, data: dict):
-        self.ref().document(uid).update(dict(data))
+        self.col().update_one({"_id": str(uid)}, {"$set": dict(data)})
         return self.get(uid)
 
     def update_fcm_token(self, uid, token: str):
-        self.ref().document(uid).update({"fcmToken": token})
+        self.col().update_one({"_id": str(uid)}, {"$set": {"fcmToken": token}})
 
     def all_fcm_tokens(self):
-        docs = self.ref().where("fcmToken", "!=", "").get()
-        return [d.to_dict().get("fcmToken") for d in docs if d.to_dict().get("fcmToken")]
+        docs = self.col().find({"fcmToken": {"$ne": ""}})
+        return [self._doc(d).get("fcmToken") for d in docs if self._doc(d).get("fcmToken")]

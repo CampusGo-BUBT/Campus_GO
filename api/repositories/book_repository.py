@@ -1,12 +1,8 @@
-"""Data access for Firestore `books` documents."""
-from datetime import datetime
-
-from google.cloud.firestore import SERVER_TIMESTAMP
-
-from api.repositories.base import FirestoreRepository
+"""Data access for MongoDB `books` documents."""
+from api.repositories.mongo_base import MongoRepository
 
 
-class BookRepository(FirestoreRepository):
+class BookRepository(MongoRepository):
     collection_name = "books"
     defaults = {
         "title": "",
@@ -25,24 +21,19 @@ class BookRepository(FirestoreRepository):
     }
 
     def all(self, condition=None):
-        ref = self.ref()
+        query = {}
         if condition:
-            ref = ref.where("condition", "==", condition)
-        snapshots = ref.get()
-        docs = [self._doc(s) for s in snapshots]
-        docs.sort(key=lambda d: d.get("createdAt") or datetime.min, reverse=True)
-        return docs
+            query["condition"] = condition
+        return self._list(query, sort_key="createdAt", reverse=True)
 
     def create(self, seller_uid, seller_name, payload: dict):
         data = {
             "userId": seller_uid,
             "sellerName": seller_name,
-            "createdAt": SERVER_TIMESTAMP,
+            "createdAt": self._now(),
         }
         data.update(payload)
-        ref = self.ref().document()
-        ref.set(data)
-        return self.get(ref.id)
+        return self._insert(self._new_id(), data)
 
     def delete(self, book_id):
-        self.ref().document(book_id).delete()
+        self.col().delete_one({"_id": str(book_id)})

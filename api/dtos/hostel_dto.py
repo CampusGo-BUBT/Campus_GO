@@ -25,7 +25,7 @@ class HostelDto(serializers.Serializer):
     gender = serializers.ChoiceField(
         choices=["Boys", "Girls", "Family"], default="Boys"
     )
-    imageUrl = serializers.CharField(read_only=True, default="", allow_null=True)
+    imageUrl = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
     images = serializers.ListField(
         child=serializers.CharField(), required=False, default=list
     )

@@ -1,12 +1,11 @@
-"""Data access for Firestore `posts` documents."""
-from datetime import datetime
+"""Data access for MongoDB `posts` documents."""
+from api.repositories.mongo_base import MongoRepository
 
-from google.cloud.firestore import ArrayRemove, ArrayUnion, SERVER_TIMESTAMP
+# Types that require admin approval before appearing in the public feed.
+MODERATED_TYPES = {"job", "hostel", "tuition"}
 
-from api.repositories.base import FirestoreRepository
 
-
-class PostRepository(FirestoreRepository):
+class PostRepository(MongoRepository):
     collection_name = "posts"
     defaults = {
         "authorId": "",
@@ -19,26 +18,32 @@ class PostRepository(FirestoreRepository):
         "likedBy": [],
         "savedBy": [],
         "commentCount": 0,
+        "status": "approved",
         "createdAt": None,
     }
 
-    def all(self, author_id=None):
-        ref = self.ref()
+    def all(self, author_id=None, type=None):
+        query = {"status": "approved"}
         if author_id:
-            ref = ref.where("authorId", "==", author_id)
-        snapshots = ref.get()
-        docs = [self._doc(s) for s in snapshots]
-        docs.sort(key=lambda d: d.get("createdAt") or datetime.min, reverse=True)
-        return docs
+            query["authorId"] = author_id
+        if type:
+            query["type"] = type
+        return self._list(query, sort_key="createdAt", reverse=True)
+
+    def admin_all(self, status=None, type=None):
+        query = {}
+        if status:
+            query["status"] = status
+        if type:
+            query["type"] = type
+        return self._list(query, sort_key="createdAt", reverse=True)
 
     def saved_by(self, uid):
-        snapshots = self.ref().where("savedBy", "array_contains", uid).get()
-        docs = [self._doc(s) for s in snapshots]
-        docs.sort(
-            key=lambda d: d.get("createdAt") or datetime.min,
+        return self._list(
+            {"savedBy": uid, "status": "approved"},
+            sort_key="createdAt",
             reverse=True,
         )
-        return docs
 
     def create(self, author_uid, author_name, author_handle, author_photo_url, payload: dict):
         data = {
@@ -49,22 +54,29 @@ class PostRepository(FirestoreRepository):
             "likedBy": [],
             "savedBy": [],
             "commentCount": 0,
-            "createdAt": SERVER_TIMESTAMP,
+            "createdAt": self._now(),
         }
         data.update(payload)
-        ref = self.ref().document()
-        ref.set(data)
-        return self.get(ref.id)
+        ptype = (data.get("type") or "general").lower()
+        data["status"] = "pending" if ptype in MODERATED_TYPES else "approved"
+        return self._insert(self._new_id(), data)
+
+    def set_status(self, post_id, status):
+        self.col().update_one({"_id": str(post_id)}, {"$set": {"status": status}})
+        return self.get(post_id)
 
     def toggle_like(self, post_id, uid, currently_liked: bool):
-        op = ArrayRemove([uid]) if currently_liked else ArrayUnion([uid])
-        self.ref().document(post_id).update({"likedBy": op})
+        op = "$pull" if currently_liked else "$addToSet"
+        self.col().update_one({"_id": str(post_id)}, {op: {"likedBy": uid}})
         return self.get(post_id)
 
     def toggle_save(self, post_id, uid, currently_saved: bool):
-        op = ArrayRemove([uid]) if currently_saved else ArrayUnion([uid])
-        self.ref().document(post_id).update({"savedBy": op})
+        op = "$pull" if currently_saved else "$addToSet"
+        self.col().update_one({"_id": str(post_id)}, {op: {"savedBy": uid}})
         return self.get(post_id)
 
+    def delete_by_author(self, author_uid):
+        self.col().delete_many({"authorId": author_uid})
+
     def delete(self, post_id):
-        self.ref().document(post_id).delete()
+        self.col().delete_one({"_id": str(post_id)})

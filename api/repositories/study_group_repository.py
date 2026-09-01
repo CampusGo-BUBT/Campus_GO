@@ -1,10 +1,8 @@
-"""Data access for Firestore `study_groups` docs + `messages` subcollection."""
-from google.cloud.firestore import ArrayRemove, ArrayUnion, SERVER_TIMESTAMP
-
-from api.repositories.base import FirestoreRepository
+"""Data access for MongoDB `study_groups` documents (messages embedded)."""
+from api.repositories.mongo_base import MongoRepository
 
 
-class StudyGroupRepository(FirestoreRepository):
+class StudyGroupRepository(MongoRepository):
     collection_name = "study_groups"
     defaults = {
         "name": "",
@@ -20,8 +18,7 @@ class StudyGroupRepository(FirestoreRepository):
     }
 
     def all(self, search=None):
-        snapshots = self.ref().order_by("createdAt", direction="DESCENDING").get()
-        docs = [self._doc(s) for s in snapshots]
+        docs = self._list(sort_key="createdAt", reverse=True)
         if search:
             q = str(search).lower()
             docs = [
@@ -38,18 +35,17 @@ class StudyGroupRepository(FirestoreRepository):
             "creatorId": creator_uid,
             "creatorName": creator_name,
             "members": [creator_uid],
-            "createdAt": SERVER_TIMESTAMP,
+            "messages": [],
+            "createdAt": self._now(),
         }
         data.update(payload)
-        ref = self.ref().document()
-        ref.set(data)
-        return self.get(ref.id)
+        return self._insert(self._new_id(), data)
 
     def add_member(self, group_id, uid):
-        self.ref().document(group_id).update({"members": ArrayUnion([uid])})
+        self.col().update_one({"_id": str(group_id)}, {"$addToSet": {"members": uid}})
 
     def remove_member(self, group_id, uid):
-        self.ref().document(group_id).update({"members": ArrayRemove([uid])})
+        self.col().update_one({"_id": str(group_id)}, {"$pull": {"members": uid}})
 
     def is_member(self, group: dict, uid) -> bool:
         return uid in group.get("members", [])
@@ -58,32 +54,31 @@ class StudyGroupRepository(FirestoreRepository):
         return len(group.get("members", []))
 
     def messages(self, group_id):
-        snapshots = (
-            self.ref().document(group_id).collection("messages").order_by("createdAt").get()
-        )
-        return [self._message(s) for s in snapshots]
+        doc = self.col().find_one({"_id": str(group_id)})
+        if doc is None:
+            return []
+        return [self._message(m) for m in doc.get("messages", [])]
 
     def create_message(self, group_id, sender_uid, sender_name, text: str):
-        data = {
+        msg = {
+            "id": self._new_id(),
             "message": text,
             "senderId": sender_uid,
             "senderName": sender_name,
-            "createdAt": SERVER_TIMESTAMP,
+            "createdAt": self._now(),
         }
-        ref = self.ref().document(group_id).collection("messages").document()
-        ref.set(data)
-        snapshot = ref.get()
-        return self._message(snapshot)
+        self.col().update_one({"_id": str(group_id)}, {"$push": {"messages": msg}})
+        return self._message(msg)
 
     @staticmethod
-    def _message(snapshot) -> dict:
-        data = snapshot.to_dict() or {}
-        data.setdefault("id", snapshot.id)
-        data.setdefault("message", "")
-        data.setdefault("senderId", "")
-        data.setdefault("senderName", "")
-        data.setdefault("createdAt", None)
-        return data
+    def _message(data) -> dict:
+        m = dict(data) if data else {}
+        m.setdefault("id", "")
+        m.setdefault("message", "")
+        m.setdefault("senderId", "")
+        m.setdefault("senderName", "")
+        m.setdefault("createdAt", None)
+        return m
 
     def delete(self, group_id):
-        self.ref().document(group_id).delete()
+        self.col().delete_one({"_id": str(group_id)})

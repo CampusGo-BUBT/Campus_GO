@@ -1,12 +1,8 @@
-"""Data access for Firestore `tutors` and `tuition_applications` documents."""
-from datetime import datetime
-
-from google.cloud.firestore import ArrayUnion, SERVER_TIMESTAMP
-
-from api.repositories.base import FirestoreRepository
+"""Data access for MongoDB `tutors` and `tuition_applications` documents."""
+from api.repositories.mongo_base import MongoRepository
 
 
-class TutorRepository(FirestoreRepository):
+class TutorRepository(MongoRepository):
     collection_name = "tutors"
     defaults = {
         "jobId": "",
@@ -27,11 +23,11 @@ class TutorRepository(FirestoreRepository):
         "posterName": "",
         "postedAt": None,
         "applicants": [],
+        "status": "pending",
     }
 
     def all(self, search=None):
-        snapshots = self.ref().order_by("postedAt", direction="DESCENDING").get()
-        docs = [self._doc(s) for s in snapshots]
+        docs = self._list({"status": "approved"}, sort_key="postedAt", reverse=True)
         if search:
             q = str(search).lower()
             docs = [
@@ -45,34 +41,47 @@ class TutorRepository(FirestoreRepository):
             ]
         return docs
 
+    def admin_all(self, status=None):
+        query = {}
+        if status:
+            query["status"] = status
+        return self._list(query, sort_key="postedAt", reverse=True)
+
     def create(self, user_uid, poster_name, payload: dict):
         data = {
             "userId": user_uid,
             "posterName": poster_name,
             "applicants": [],
-            "postedAt": SERVER_TIMESTAMP,
+            "status": "pending",
+            "postedAt": self._now(),
         }
         data.update(payload)
-        ref = self.ref().document()
-        ref.set(data)
-        doc = self.get(ref.id)
+        doc_id = self._new_id()
+        doc = self._insert(doc_id, data)
         if not doc.get("jobId"):
-            job_id = f"544{ref.id[:3]}1"
-            self.ref().document(ref.id).update({"jobId": job_id})
-            doc = self.get(ref.id)
+            job_id = f"544{doc_id[:3]}1"
+            self.col().update_one({"_id": doc_id}, {"$set": {"jobId": job_id}})
+            doc = self.get(doc_id)
         return doc
+
+    def set_status(self, tutor_id, status):
+        self.col().update_one({"_id": str(tutor_id)}, {"$set": {"status": status}})
+        return self.get(tutor_id)
 
     def has_applicant(self, tutor: dict, uid) -> bool:
         return uid in tutor.get("applicants", [])
 
     def add_applicant(self, tutor_id, uid):
-        self.ref().document(tutor_id).update({"applicants": ArrayUnion([uid])})
+        self.col().update_one({"_id": str(tutor_id)}, {"$addToSet": {"applicants": uid}})
+
+    def delete_by_author(self, author_uid):
+        self.col().delete_many({"userId": author_uid})
 
     def delete(self, tutor_id):
-        self.ref().document(tutor_id).delete()
+        self.col().delete_one({"_id": str(tutor_id)})
 
 
-class TuitionApplicationRepository(FirestoreRepository):
+class TuitionApplicationRepository(MongoRepository):
     collection_name = "tuition_applications"
     defaults = {
         "tuitionId": "",
@@ -85,13 +94,10 @@ class TuitionApplicationRepository(FirestoreRepository):
     }
 
     def all(self, applicant_uid=None):
-        ref = self.ref()
+        query = {}
         if applicant_uid:
-            ref = ref.where("applicantId", "==", applicant_uid)
-        snapshots = ref.get()
-        docs = [self._doc(s) for s in snapshots]
-        docs.sort(key=lambda d: d.get("appliedAt") or datetime.min, reverse=True)
-        return docs
+            query["applicantId"] = applicant_uid
+        return self._list(query, sort_key="appliedAt", reverse=True)
 
     def create(self, tuition_id, applicant_uid, applicant_name, phone, note):
         data = {
@@ -101,8 +107,6 @@ class TuitionApplicationRepository(FirestoreRepository):
             "applicantPhone": phone,
             "note": note,
             "status": "pending",
-            "appliedAt": SERVER_TIMESTAMP,
+            "appliedAt": self._now(),
         }
-        ref = self.ref().document()
-        ref.set(data)
-        return self.get(ref.id)
+        return self._insert(self._new_id(), data)

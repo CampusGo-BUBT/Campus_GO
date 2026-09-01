@@ -15,7 +15,7 @@ class NoticeDto(serializers.Serializer):
     )
     dateStr = serializers.CharField(required=False, allow_blank=True, max_length=60)
     attachmentName = serializers.CharField(required=False, allow_blank=True, max_length=200)
-    attachmentUrl = serializers.CharField(read_only=True, default="", allow_null=True)
+    attachmentUrl = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
     userId = serializers.CharField(read_only=True, default="")
     authorName = serializers.CharField(read_only=True, default="")
     createdAt = serializers.DateTimeField(read_only=True, allow_null=True)

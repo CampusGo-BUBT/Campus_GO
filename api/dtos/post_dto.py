@@ -13,7 +13,7 @@ class PostDto(serializers.Serializer):
     authorHandle = serializers.CharField(read_only=True, default="")
     authorPhotoUrl = serializers.CharField(read_only=True, default="", allow_null=True)
     caption = serializers.CharField(required=False, allow_blank=True)
-    imageUrl = serializers.CharField(read_only=True, default="", allow_null=True)
+    imageUrl = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
     createdAt = serializers.DateTimeField(read_only=True, allow_null=True)
     likedBy = serializers.ListField(child=serializers.CharField(), read_only=True, default=list)
     savedBy = serializers.ListField(child=serializers.CharField(), read_only=True, default=list)

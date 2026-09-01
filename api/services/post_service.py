@@ -10,8 +10,8 @@ _user_repo = UserRepository()
 
 
 class PostService:
-    def list_posts(self, author_id=None):
-        return _repo.all(author_id=author_id)
+    def list_posts(self, author_id=None, type=None):
+        return _repo.all(author_id=author_id, type=type)
 
     def saved_posts(self, uid):
         return _repo.saved_by(uid)

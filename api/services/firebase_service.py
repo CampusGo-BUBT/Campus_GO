@@ -172,13 +172,27 @@ def get_storage_bucket():
 
 
 def upload_file(folder: str, file_obj, content_type: str = None) -> str:
-    """Upload a file to Firebase Storage and return a public download URL."""
-    ext = os.path.splitext(file_obj.name or "")[1] or ""
-    blob_name = f"{folder}/{uuid.uuid4().hex}{ext}"
-    blob = get_storage_bucket().blob(blob_name)
-    blob.upload_from_file(file_obj, content_type=content_type or getattr(file_obj, "content_type", None) or "application/octet-stream")
-    blob.make_public()
-    return blob.public_url
+    """Save an uploaded file to local media and return its public URL.
+
+    Firebase Storage is intentionally skipped: files are stored on the backend
+    disk (settings.MEDIA_ROOT) and served at settings.MEDIA_URL, so the app
+    displays images without depending on Firebase. Returns an absolute URL
+    built from settings.MEDIA_BASE_URL so the Flutter app can load it directly.
+    """
+    from django.conf import settings
+
+    ext = os.path.splitext(getattr(file_obj, "name", "") or "")[1] or ".jpg"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    media_dir = settings.MEDIA_ROOT / folder
+    media_dir.mkdir(parents=True, exist_ok=True)
+    dest = media_dir / filename
+    with open(dest, "wb") as fh:
+        for chunk in file_obj.chunks():
+            fh.write(chunk)
+
+    base = (settings.MEDIA_BASE_URL or "").rstrip("/")
+    media_url = (settings.MEDIA_URL or "media").strip("/") or "media"
+    return f"{base}/{media_url}/{folder}/{filename}"
 
 
 # ---------------------------------------------------------------------------
@@ -199,6 +213,13 @@ def create_firebase_user(email: str, password: str, name: str = "") -> str:
         email=email, password=password, display_name=name, app=_require_app()
     )
     return user.uid
+
+
+def get_firebase_user(uid: str):
+    """Fetch a Firebase Auth user record by uid (used for profile sync)."""
+    from firebase_admin import auth
+
+    return auth.get_user(uid, app=_require_app())
 
 
 def sign_in_with_password(email: str, password: str) -> dict:

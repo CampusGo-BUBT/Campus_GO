@@ -29,7 +29,10 @@ SECRET_KEY = os.getenv(
 
 DEBUG = env_bool("DJANGO_DEBUG", True)
 
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,10.0.2.2")
+ALLOWED_HOSTS = env_list(
+    "DJANGO_ALLOWED_HOSTS",
+    "localhost,127.0.0.1,10.0.2.2,192.168.0.108",
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -102,6 +105,10 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Public base URL used to build absolute URLs for uploaded media (served by
+# this backend). Point it at the host the Flutter app uses (e.g. the LAN IP).
+MEDIA_BASE_URL = os.getenv("MEDIA_BASE_URL", "http://192.168.0.108:8000")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---------------------------------------------------------------------------
@@ -124,11 +131,26 @@ REST_FRAMEWORK = {
         "rest_framework.filters.OrderingFilter",
     ),
     "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%SZ",
+    "EXCEPTION_HANDLER": "api.exceptions.campusgo_exception_handler",
 }
 
 # Firebase Identity Toolkit web API key, used by the backend login endpoint.
 # Find it in Firebase Console > Project settings > General > Web API Key.
 FIREBASE_WEB_API_KEY = os.getenv("FIREBASE_WEB_API_KEY", "")
+
+# ---------------------------------------------------------------------------
+# Static admin account (development only). Firebase Auth requires >= 6 chars,
+# so the static password "1" is mapped to a 6-char Firebase password.
+# ---------------------------------------------------------------------------
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@gmail.com")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "1")
+ADMIN_FIREBASE_PASSWORD = os.getenv("ADMIN_FIREBASE_PASSWORD", "111111")
+
+# ---------------------------------------------------------------------------
+# MongoDB (replica of the Firestore data)
+# ---------------------------------------------------------------------------
+MONGODB_URI = os.getenv("MONGODB_URI", "")
+MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "campusgo")
 
 # ---------------------------------------------------------------------------
 # CORS - allow Flutter web / emulator origins

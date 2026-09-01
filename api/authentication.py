@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import HTTP_HEADER_ENCODING, exceptions
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
 
+from api.repositories.user_repository import UserRepository
 from api.services import firebase_service
 
 
@@ -38,6 +39,16 @@ class FirebaseTokenAuthentication(BaseAuthentication):
             ) from exc
 
         uid = decoded["uid"]
+
+        banned = False
+        try:
+            user_doc = UserRepository().get(uid)
+            banned = bool(user_doc and user_doc.get("isBanned"))
+        except Exception:  # noqa: BLE001
+            pass
+        if banned:
+            raise exceptions.AuthenticationFailed("This account has been banned.")
+
         User = get_user_model()
         name = decoded.get("name", "")
         user, _ = User.objects.get_or_create(

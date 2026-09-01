@@ -13,7 +13,8 @@ class PostController(viewsets.ViewSet):
 
     def list(self, request):
         author_id = request.query_params.get("authorId")
-        posts = post_service.list_posts(author_id=author_id)
+        post_type = request.query_params.get("type")
+        posts = post_service.list_posts(author_id=author_id, type=post_type)
         return Response(PostDto(posts, many=True).data)
 
     @action(detail=False, methods=["get"])

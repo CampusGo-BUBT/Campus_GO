@@ -1,10 +1,8 @@
-"""Data access for Firestore `notifications` documents."""
-from google.cloud.firestore import SERVER_TIMESTAMP
-
-from api.repositories.base import FirestoreRepository
+"""Data access for MongoDB `notifications` documents."""
+from api.repositories.mongo_base import MongoRepository
 
 
-class NotificationRepository(FirestoreRepository):
+class NotificationRepository(MongoRepository):
     collection_name = "notifications"
     defaults = {
         "userId": "",
@@ -16,13 +14,7 @@ class NotificationRepository(FirestoreRepository):
     }
 
     def for_user(self, uid):
-        snapshots = self.ref().where("userId", "==", uid).get()
-        docs = [self._doc(s) for s in snapshots]
-        docs.sort(
-            key=lambda d: d.get("createdAt"),
-            reverse=True,
-        )
-        return docs
+        return self._list({"userId": uid}, sort_key="createdAt", reverse=True)
 
     def get_for_user(self, uid, notification_id):
         doc = self.get(notification_id)
@@ -41,20 +33,15 @@ class NotificationRepository(FirestoreRepository):
             "body": body,
             "type": type,
             "isRead": False,
-            "createdAt": SERVER_TIMESTAMP,
+            "createdAt": self._now(),
         }
-        ref = self.ref().document()
-        ref.set(data)
-        return self.get(ref.id)
+        return self._insert(self._new_id(), data)
 
     def mark_read(self, notification_id):
-        self.ref().document(notification_id).update({"isRead": True})
+        self.col().update_one({"_id": str(notification_id)}, {"$set": {"isRead": True}})
 
     def mark_all_read(self, uid) -> int:
-        docs = self.for_user(uid)
-        count = 0
-        for d in docs:
-            if not d.get("isRead"):
-                self.ref().document(d["id"]).update({"isRead": True})
-                count += 1
-        return count
+        result = self.col().update_many(
+            {"userId": uid, "isRead": False}, {"$set": {"isRead": True}}
+        )
+        return result.modified_count

@@ -68,12 +68,28 @@ class LoginController(APIView):
 
 
 class MeController(APIView):
-    """GET /api/auth/user/  - current user profile (from Firestore)."""
+    """GET /api/auth/user/  - current user profile (from Mongo)."""
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user_doc = auth_service.get_user_doc(request.user.firebase_uid)
+        return Response(UserDto(user_doc).data)
+
+
+class GoogleLoginController(APIView):
+    """POST /api/auth/google/  - sync a Google-signed-in Firebase uid to Mongo.
+
+    The Flutter app signs in with Google via Firebase Auth, then posts the
+    Firebase ID token (already verified by FirebaseTokenAuthentication). We
+    ensure the MongoDB `users` doc exists and return it, so every login path
+    (email, password, Google) results in a synced MongoDB profile.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user_doc = auth_service.sync_user(request.user.firebase_uid)
         return Response(UserDto(user_doc).data)
 
 
