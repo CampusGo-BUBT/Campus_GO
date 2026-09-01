@@ -30,6 +30,13 @@ class RegisterController(APIView):
             )
         except (ValueError, RuntimeError) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:  # noqa: BLE001 - FirebaseError subtypes (EmailAlreadyExistsError, ...)
+            code = getattr(exc, "code", None)
+            if code == "ALREADY_EXISTS":
+                detail = "An account with this email already exists. Please log in instead."
+            else:
+                detail = str(exc)
+            return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
         return Response(UserDto(user_doc).data, status=status.HTTP_201_CREATED)
 
 
