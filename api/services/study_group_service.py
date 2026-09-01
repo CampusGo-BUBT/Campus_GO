@@ -52,5 +52,10 @@ class StudyGroupService:
             raise PermissionDenied("Only the creator can delete the group.")
         _repo.delete(group["id"])
 
+    def update_group(self, uid, is_staff, group, data):
+        if group.get("creatorId") != uid and not is_staff:
+            raise PermissionDenied("Only the creator can edit the group.")
+        return _repo.update(group["id"], dict(data))
+
 
 study_group_service = StudyGroupService()

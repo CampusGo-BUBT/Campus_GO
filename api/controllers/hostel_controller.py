@@ -33,3 +33,14 @@ class HostelController(viewsets.ViewSet):
         hostel = hostel_service.get_hostel(pk)
         hostel_service.delete_hostel(request.user.firebase_uid, request.user.is_staff, hostel)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def partial_update(self, request, pk=None):
+        hostel = hostel_service.get_hostel(pk)
+        dto = HostelDto(data=request.data, partial=True)
+        dto.is_valid(raise_exception=True)
+        image = request.FILES.get("image")
+        hostel = hostel_service.update_hostel(
+            request.user.firebase_uid, request.user.is_staff, hostel,
+            dto.validated_data, image_file=image,
+        )
+        return Response(HostelDto(hostel).data)

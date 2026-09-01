@@ -31,6 +31,15 @@ class TutorController(viewsets.ViewSet):
         tutor_service.delete_tutor(request.user.firebase_uid, request.user.is_staff, tutor)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def partial_update(self, request, pk=None):
+        tutor = tutor_service.get_tutor(pk)
+        dto = TutorJobDto(data=request.data, partial=True)
+        dto.is_valid(raise_exception=True)
+        tutor = tutor_service.update_tutor(
+            request.user.firebase_uid, request.user.is_staff, tutor, dto.validated_data
+        )
+        return Response(TutorJobDto(tutor).data)
+
     @action(detail=True, methods=["post"])
     def apply(self, request, pk=None):
         tutor = tutor_service.get_tutor(pk)

@@ -40,6 +40,17 @@ class PostController(viewsets.ViewSet):
         post_service.delete_post(request.user.firebase_uid, request.user.is_staff, post)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def partial_update(self, request, pk=None):
+        post = post_service.get_post(pk)
+        dto = PostDto(data=request.data, partial=True)
+        dto.is_valid(raise_exception=True)
+        image = request.FILES.get("image")
+        post = post_service.update_post(
+            request.user.firebase_uid, request.user.is_staff, post,
+            dto.validated_data, image_file=image,
+        )
+        return Response(PostDto(post).data)
+
     @action(detail=True, methods=["post"])
     def like(self, request, pk=None):
         post = post_service.toggle_like(

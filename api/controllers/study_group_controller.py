@@ -32,6 +32,15 @@ class StudyGroupController(viewsets.ViewSet):
         study_group_service.delete_group(request.user.firebase_uid, request.user.is_staff, group)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def partial_update(self, request, pk=None):
+        group = study_group_service.get_group(pk)
+        dto = StudyGroupDto(data=request.data, partial=True)
+        dto.is_valid(raise_exception=True)
+        group = study_group_service.update_group(
+            request.user.firebase_uid, request.user.is_staff, group, dto.validated_data
+        )
+        return Response(StudyGroupDto(group).data)
+
     @action(detail=True, methods=["post"])
     def join(self, request, pk=None):
         group = study_group_service.get_group(pk)

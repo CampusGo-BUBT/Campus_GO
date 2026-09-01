@@ -47,6 +47,11 @@ class TutorService:
             raise PermissionDenied("You can only delete your own tuition posts.")
         _tutor_repo.delete(tutor["id"])
 
+    def update_tutor(self, uid, is_staff, tutor, data):
+        if tutor.get("userId") != uid and not is_staff:
+            raise PermissionDenied("You can only edit your own tuition posts.")
+        return _tutor_repo.update(tutor["id"], dict(data))
+
 
 class TuitionApplicationService:
     def list_applications(self, uid, is_staff, tuition_id=None):

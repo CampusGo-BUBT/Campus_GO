@@ -22,7 +22,6 @@ import base64
 import json
 import logging
 import os
-import uuid
 
 import requests
 
@@ -172,47 +171,35 @@ def get_storage_bucket():
 
 
 def upload_file(folder: str, file_obj, content_type: str = None) -> str:
-    """Save an uploaded file and return a public URL.
+    """Encode an uploaded file as a base64 data URI and return it.
 
-    Uploads to Firebase Storage (persistent across deploys) so files are
-    visible to every user. Falls back to the local disk (settings.MEDIA_ROOT)
-    when Firebase credentials are not configured, e.g. during local dev.
+    Images are stored inline (base64) inside the MongoDB document rather than
+    in Firebase Storage or on disk. Callers store the returned string in the
+    `imageUrl` / `photoUrl` / `attachmentUrl` field, and clients render it via
+    Image.memory (see the app's image helper).
+
+    Returns e.g. "data:image/jpeg;base64,<base64 bytes>".
     """
-    from urllib.parse import quote
-
-    from django.conf import settings
-
-    ext = os.path.splitext(getattr(file_obj, "name", "") or "")[1] or ".jpg"
-    filename = f"{uuid.uuid4().hex}{ext}"
-    blob_path = f"{folder}/{filename}"
     content_type = content_type or getattr(file_obj, "content_type", None)
+    if not content_type:
+        _, ext = os.path.splitext(getattr(file_obj, "name", "") or "")
+        content_type = _CONTENT_TYPES.get(ext.lower(), "application/octet-stream")
 
-    app = get_firebase_app()
-    if app is None:
-        media_dir = settings.MEDIA_ROOT / folder
-        media_dir.mkdir(parents=True, exist_ok=True)
-        dest = media_dir / filename
-        with open(dest, "wb") as fh:
-            for chunk in file_obj.chunks():
-                fh.write(chunk)
-        base = (settings.MEDIA_BASE_URL or "").rstrip("/")
-        media_url = (settings.MEDIA_URL or "media").strip("/") or "media"
-        return f"{base}/{media_url}/{folder}/{filename}"
-
-    from firebase_admin import storage
-
-    bucket = storage.bucket(app=app)
-    blob = bucket.blob(blob_path)
-    token = uuid.uuid4().hex
-    blob.metadata = {"firebaseStorageDownloadTokens": token}
     file_obj.seek(0)
-    blob.upload_from_file(file_obj, content_type=content_type)
+    data = file_obj.read()
+    encoded = base64.b64encode(data).decode("ascii")
+    return f"data:{content_type};base64,{encoded}"
 
-    encoded = quote(blob_path, safe="")
-    return (
-        f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/{encoded}"
-        f"?alt=media&token={token}"
-    )
+
+_CONTENT_TYPES = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".bmp": "image/bmp",
+    ".pdf": "application/pdf",
+}
 
 
 # ---------------------------------------------------------------------------

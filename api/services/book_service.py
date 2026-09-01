@@ -32,5 +32,13 @@ class BookService:
             raise PermissionDenied("You can only delete your own books.")
         _repo.delete(book["id"])
 
+    def update_book(self, uid, is_staff, book, data, image_file=None):
+        if book.get("userId") != uid and not is_staff:
+            raise PermissionDenied("You can only edit your own books.")
+        payload = dict(data)
+        if image_file:
+            payload["imageUrl"] = firebase_service.upload_file("book_images", image_file)
+        return _repo.update(book["id"], payload)
+
 
 book_service = BookService()

@@ -40,5 +40,14 @@ class NoticeService:
             raise PermissionDenied("You can only delete your own notices.")
         _repo.delete(notice["id"])
 
+    def update_notice(self, uid, is_staff, notice, data, attachment_file=None):
+        if notice.get("userId") != uid and not is_staff:
+            raise PermissionDenied("You can only edit your own notices.")
+        payload = dict(data)
+        if attachment_file:
+            payload["attachmentName"] = attachment_file.name
+            payload["attachmentUrl"] = firebase_service.upload_file("notice_files", attachment_file)
+        return _repo.update(notice["id"], payload)
+
 
 notice_service = NoticeService()

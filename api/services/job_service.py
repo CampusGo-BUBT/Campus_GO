@@ -31,5 +31,10 @@ class JobService:
             raise PermissionDenied("You can only delete your own jobs.")
         _repo.delete(job["id"])
 
+    def update_job(self, uid, is_staff, job, data):
+        if job.get("userId") != uid and not is_staff:
+            raise PermissionDenied("You can only edit your own jobs.")
+        return _repo.update(job["id"], dict(data))
+
 
 job_service = JobService()

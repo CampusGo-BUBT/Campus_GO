@@ -29,3 +29,12 @@ class JobController(viewsets.ViewSet):
         job = job_service.get_job(pk)
         job_service.delete_job(request.user.firebase_uid, request.user.is_staff, job)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def partial_update(self, request, pk=None):
+        job = job_service.get_job(pk)
+        dto = JobDto(data=request.data, partial=True)
+        dto.is_valid(raise_exception=True)
+        job = job_service.update_job(
+            request.user.firebase_uid, request.user.is_staff, job, dto.validated_data
+        )
+        return Response(JobDto(job).data)

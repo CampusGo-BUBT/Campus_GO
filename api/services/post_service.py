@@ -45,5 +45,15 @@ class PostService:
             raise PermissionDenied("You can only delete your own posts.")
         _repo.delete(post["id"])
 
+    def update_post(self, uid, is_staff, post, data, image_file=None):
+        if post.get("authorId") != uid and not is_staff:
+            raise PermissionDenied("You can only edit your own posts.")
+        payload = dict(data)
+        if image_file:
+            payload["imageUrl"] = firebase_service.upload_file("post_images", image_file)
+        if not payload:
+            return post
+        return _repo.update(post["id"], payload)
+
 
 post_service = PostService()

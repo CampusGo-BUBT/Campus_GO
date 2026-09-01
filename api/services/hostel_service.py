@@ -32,5 +32,13 @@ class HostelService:
             raise PermissionDenied("You can only delete your own hostels.")
         _repo.delete(hostel["id"])
 
+    def update_hostel(self, uid, is_staff, hostel, data, image_file=None):
+        if hostel.get("userId") != uid and not is_staff:
+            raise PermissionDenied("You can only edit your own hostels.")
+        payload = dict(data)
+        if image_file:
+            payload["imageUrl"] = firebase_service.upload_file("hostel_images", image_file)
+        return _repo.update(hostel["id"], payload)
+
 
 hostel_service = HostelService()

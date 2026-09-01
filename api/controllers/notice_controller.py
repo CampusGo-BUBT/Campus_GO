@@ -32,3 +32,14 @@ class NoticeController(viewsets.ViewSet):
         notice = notice_service.get_notice(pk)
         notice_service.delete_notice(request.user.firebase_uid, request.user.is_staff, notice)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def partial_update(self, request, pk=None):
+        notice = notice_service.get_notice(pk)
+        dto = NoticeDto(data=request.data, partial=True)
+        dto.is_valid(raise_exception=True)
+        attachment = request.FILES.get("attachment")
+        notice = notice_service.update_notice(
+            request.user.firebase_uid, request.user.is_staff, notice,
+            dto.validated_data, attachment_file=attachment,
+        )
+        return Response(NoticeDto(notice).data)

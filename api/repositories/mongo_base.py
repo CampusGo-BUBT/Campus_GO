@@ -57,5 +57,15 @@ class MongoRepository:
         return [cls._doc(d) for d in cursor]
 
     @classmethod
+    def by_owner(cls, uid, owner_key="userId"):
+        """List documents owned by a user (posts use authorId, others userId)."""
+        return cls._list({owner_key: uid}, sort_key="createdAt", reverse=True)
+
+    @classmethod
     def delete(cls, doc_id):
         cls.col().delete_one({"_id": str(doc_id)})
+
+    @classmethod
+    def update(cls, doc_id, data: dict):
+        cls.col().update_one({"_id": str(doc_id)}, {"$set": dict(data)})
+        return cls.get(doc_id)

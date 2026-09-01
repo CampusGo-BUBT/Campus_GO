@@ -23,6 +23,10 @@ from api.controllers.job_controller import JobController
 from api.controllers.notice_controller import NoticeController
 from api.controllers.notification_controller import NotificationController
 from api.controllers.post_controller import PostController
+from api.controllers.profile_controller import (
+    MyListingsController,
+    UpdateProfileFieldsController,
+)
 from api.controllers.study_group_controller import StudyGroupController
 from api.controllers.tutor_controller import TuitionApplicationController, TutorController
 from api.controllers.user_controller import UserProfileController
@@ -48,6 +52,8 @@ urlpatterns = [
     path("auth/user/token/", UpdateTokenController.as_view(), name="update_fcm_token"),
     path("auth/user/profile/", UpdateProfileController.as_view(), name="update_profile"),
     path("users/<str:uid>/", UserProfileController.as_view(), name="user_profile"),
+    path("profile/me/listings/", MyListingsController.as_view(), name="my_listings"),
+    path("profile/me/", UpdateProfileFieldsController.as_view(), name="update_profile_fields"),
     path("admin/dashboard/", AdminDashboardController.as_view(), name="admin_dashboard"),
     path("admin/items/", AdminItemsController.as_view(), name="admin_items"),
     path(
