@@ -17,6 +17,7 @@ class UserDto(serializers.Serializer):
     phone = serializers.CharField(read_only=True, default="")
     photoUrl = serializers.CharField(read_only=True, default="", allow_null=True)
     fcmToken = serializers.CharField(read_only=True, default="", allow_null=True)
+    isBanned = serializers.BooleanField(read_only=True, default=False)
     createdAt = serializers.DateTimeField(read_only=True, allow_null=True)
 
 
