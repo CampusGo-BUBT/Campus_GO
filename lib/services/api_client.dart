@@ -25,9 +25,21 @@ class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
 
+  // Optional override token provided by backend-login flow. When set this
+  // token is preferred over Firebase ID token so the app can operate when
+  // Firebase SDK is unavailable.
+  String? _overrideToken;
+
+  void setOverrideToken(String? token) {
+    _overrideToken = token;
+  }
+
   static const Duration _timeout = Duration(seconds: 15);
 
   Future<String?> _token() async {
+    // Prefer explicit override token when present (backend-provided),
+    // otherwise try to use Firebase SDK token.
+    if (_overrideToken != null && _overrideToken!.isNotEmpty) return _overrideToken;
     return FirebaseAuth.instance.currentUser?.getIdToken();
   }
 

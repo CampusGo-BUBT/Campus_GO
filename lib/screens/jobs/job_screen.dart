@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import '../../models/job_model.dart';
 import '../../services/job_service.dart';
 import '../../services/user_service.dart';
@@ -67,6 +69,12 @@ class _JobScreenState extends State<JobScreen> {
 
   void _showAddJobDialog() {
     final titleCtrl = TextEditingController();
+        File? imageFile;
+
+        Future<void> pickImage() async {
+          final img = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+          if (img != null) imageFile = File(img.path);
+        }
     final companyCtrl = TextEditingController();
     final locationCtrl = TextEditingController();
     final salaryCtrl = TextEditingController();
@@ -112,6 +120,8 @@ class _JobScreenState extends State<JobScreen> {
                 _jfield(companyCtrl, 'Company *', Icons.business),
                 const SizedBox(height: 10),
                 _jfield(locationCtrl, 'Location *', Icons.location_on),
+                    const SizedBox(height: 10),
+                    TextButton.icon(onPressed: () async { await pickImage(); }, icon: const Icon(Icons.photo), label: const Text('Add image (optional)')),
                 const SizedBox(height: 10),
                 _jfield(salaryCtrl, 'Salary (e.g. Tk15,000)', Icons.attach_money),
                 const SizedBox(height: 10),
@@ -139,6 +149,7 @@ class _JobScreenState extends State<JobScreen> {
                           company: companyCtrl.text.trim(),
                           location: locationCtrl.text.trim(),
                           salary: salaryCtrl.text.trim(),
+                            await _jobService.addJob(job, image: imageFile);
                           description: descCtrl.text.trim(),
                           contactEmail: emailCtrl.text.trim(),
                           phone: '',

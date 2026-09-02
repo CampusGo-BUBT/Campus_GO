@@ -71,7 +71,22 @@ class AuthService extends ChangeNotifier {
   }) async {
     try {
       await ApiClient.instance.post('/auth/register/', body: body);
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      try {
+        await _auth.signInWithEmailAndPassword(email: email, password: password);
+      } catch (e) {
+        // Firebase sign-in failed — try backend login to get an access token
+        try {
+          final resp = await ApiClient.instance.post('/auth/login/', body: {
+            'email': email.trim(),
+            'password': password,
+          });
+          if (resp is Map && resp['access'] is String) {
+            ApiClient.instance.setOverrideToken(resp['access'] as String);
+          }
+        } catch (_) {
+          // ignore — we'll surface connection errors below
+        }
+      }
       await loadProfile();
       NotificationService.init();
       notifyListeners();
@@ -89,13 +104,22 @@ class AuthService extends ChangeNotifier {
   // then hydrates the Firebase Auth session so uid-based screens keep working.
   Future<String?> login(String email, String password) async {
     try {
-      await ApiClient.instance.post('/auth/login/', body: {
+      final resp = await ApiClient.instance.post('/auth/login/', body: {
         'email': email.trim(),
         'password': password,
       });
+      // If backend returned an access token, prefer it as override so API
+      // calls work even when Firebase SDK fails.
+      if (resp is Map && resp['access'] is String) {
+        ApiClient.instance.setOverrideToken(resp['access'] as String);
+      }
       // Admin static password "1" maps to a 6-char Firebase password.
       final fbPassword = email.trim() == 'admin@gmail.com' ? '111111' : password;
-      await _auth.signInWithEmailAndPassword(email: email.trim(), password: fbPassword);
+      try {
+        await _auth.signInWithEmailAndPassword(email: email.trim(), password: fbPassword);
+      } catch (e) {
+        // Firebase sign-in failed — continue using backend token if present
+      }
       await loadProfile();
       NotificationService.init();
       notifyListeners();

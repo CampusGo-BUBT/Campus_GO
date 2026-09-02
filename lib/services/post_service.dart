@@ -42,10 +42,11 @@ class PostService {
 
   Future<void> updatePost(String postId,
       {String? caption, String? type, File? imageFile}) async {
-    final body = <String, dynamic>{
-      'caption': ?caption,
-      'type': ?type,
-    };    if (imageFile != null) {
+    final body = <String, dynamic>{};
+    if (caption != null) body['caption'] = caption;
+    if (type != null) body['type'] = type;
+
+    if (imageFile != null) {
       await _api.patchMultipart('/posts/$postId/',
           fields: body, files: {'image': imageFile});
     } else {

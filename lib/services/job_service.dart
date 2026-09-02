@@ -7,28 +7,36 @@ class JobService {
   Stream<List<JobModel>> getJobs({String query = ''}) =>
       pollStream(() => _fetch(query));
 
-  Future<void> addJob(JobModel job) async {
+  Future<void> addJob(JobModel job, {File? image}) async {
     final fields = job.toMap()
       ..remove('id')
       ..remove('createdAt')
       ..remove('userId')
       ..remove('posterName')
       ..remove('applicantCount');
-    await _api.post('/jobs/', body: fields);
+    if (image != null) {
+      await _api.postMultipart('/jobs/', fields: fields, files: {'image': image});
+    } else {
+      await _api.post('/jobs/', body: fields);
+    }
   }
 
   Future<void> deleteJob(String jobId) async {
     await _api.delete('/jobs/$jobId/');
   }
 
-  Future<void> updateJob(String jobId, JobModel job) async {
+  Future<void> updateJob(String jobId, JobModel job, {File? image}) async {
     final fields = job.toMap()
       ..remove('id')
       ..remove('createdAt')
       ..remove('userId')
       ..remove('posterName')
       ..remove('applicantCount');
-    await _api.patch('/jobs/$jobId/', body: fields);
+    if (image != null) {
+      await _api.patchMultipart('/jobs/$jobId/', fields: fields, files: {'image': image});
+    } else {
+      await _api.patch('/jobs/$jobId/', body: fields);
+    }
   }
 
   // Demo data is seeded server-side (manage.py seed); no-op kept for API parity.

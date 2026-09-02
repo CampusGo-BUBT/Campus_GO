@@ -14,6 +14,7 @@ class JobModel {
   final String phone;
   final String userId;
   final String posterName;
+  final String imageUrl;
   final DateTime? createdAt;
 
   JobModel({
@@ -85,6 +86,7 @@ class JobModel {
       phone: map['phone']?.toString() ?? '',
       userId: map['userId']?.toString() ?? '',
       posterName: map['posterName']?.toString() ?? 'Recruiter',
+      imageUrl: map['imageUrl']?.toString() ?? '',
       createdAt: dt,
     );
   }
@@ -95,6 +97,7 @@ class JobModel {
       'company': company,
       'location': location,
       'salary': salary,
+      'imageUrl': imageUrl,
       'type': type,
       'workplaceType': workplaceType,
       'description': description,

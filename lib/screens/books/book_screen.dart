@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 import '../../models/book_model.dart';
 import '../../services/book_service.dart';
@@ -207,6 +209,12 @@ class _BookScreenState extends State<BookScreen> {
     final descCtrl = TextEditingController();
     String selectedCondition = 'Good';
     bool isLoading = false;
+    File? imageFile;
+
+    Future<void> pickImage() async {
+      final img = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (img != null) imageFile = File(img.path);
+    }
 
     showModalBottomSheet(
       context: context,
@@ -250,6 +258,29 @@ class _BookScreenState extends State<BookScreen> {
                 _field(phoneCtrl, 'Contact Phone', Icons.phone, type: TextInputType.phone),
                 const SizedBox(height: 10),
                 _field(descCtrl, 'Description', Icons.description_outlined),
+                const SizedBox(height: 14),
+                GestureDetector(
+                  onTap: () async { await pickImage(); setModal(() {}); },
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: imageFile != null ? null : AppTheme.green.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.green.withValues(alpha: 0.15)),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: imageFile != null
+                        ? AspectRatio(aspectRatio: 1.4, child: Image.file(imageFile!, fit: BoxFit.cover))
+                        : Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              const Icon(Icons.add_photo_alternate_outlined, size: 28, color: Colors.green),
+                              const SizedBox(width: 8),
+                              Text('Add image (optional)', style: GoogleFonts.poppins(color: AppTheme.green)),
+                            ]),
+                          ),
+                  ),
+                ),
                 const SizedBox(height: 14),
                 Text('Condition:', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
@@ -299,7 +330,7 @@ class _BookScreenState extends State<BookScreen> {
                           sellerName: '',
                           description: descCtrl.text.trim(),
                         );
-                        await _bookService.addBook(book);
+                        await _bookService.addBook(book, image: imageFile);
                         if (ctx.mounted) Navigator.pop(ctx);
                       } catch (e) {
                         setModal(() => isLoading = false);

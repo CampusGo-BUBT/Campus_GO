@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/feed_post.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import '../services/post_service.dart';
 import '../theme/app_theme.dart';
 import '../screens/study_group/direct_chat_screen.dart';
@@ -65,14 +67,36 @@ class _PostCardState extends State<PostCard>
 
   void _editPost(BuildContext context) {
     final ctrl = TextEditingController(text: widget.post.caption);
+    String editType = widget.post.type;
+    File? imageFile;
+
+    Future<void> pickImage() async {
+      final img = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (img != null) imageFile = File(img.path);
+    }
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(
         title: const Text('Edit Post'),
-        content: TextField(
-          controller: ctrl,
-          maxLines: 5,
-          decoration: const InputDecoration(hintText: 'Caption'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(
+              controller: ctrl,
+              maxLines: 4,
+              decoration: const InputDecoration(hintText: 'Caption'),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: editType,
+              items: ['general','job','notice','tuition','sales','study','hostel','book']
+                  .map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+              onChanged: (v) => setSt(() => editType = v ?? editType),
+              decoration: const InputDecoration(labelText: 'Type'),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(onPressed: () async { await pickImage(); setSt((){}); }, icon: const Icon(Icons.photo), label: const Text('Change image (optional)')),
+          ]),
         ),
         actions: [
           TextButton(
@@ -81,14 +105,14 @@ class _PostCardState extends State<PostCard>
           ),
           ElevatedButton(
             onPressed: () async {
-              await PostService()
-                  .updatePost(widget.post.id, caption: ctrl.text.trim());
+              await PostService().updatePost(widget.post.id,
+                  caption: ctrl.text.trim(), type: editType, imageFile: imageFile);
               if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Save'),
           ),
         ],
-      ),
+      )),
     );
   }
 

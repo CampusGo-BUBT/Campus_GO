@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/post_service.dart';
+import '../../services/book_service.dart';
+import '../../models/book_model.dart';
 import '../../theme/app_theme.dart';
 
 class CreatePostScreen extends StatefulWidget {
@@ -30,7 +32,16 @@ class _CreatePostScreenState extends State<CreatePostScreen>
     _TypeOption('sales',   '🛒 Sales',     Color(0xFF27AE60)),
     _TypeOption('study',   '📖 Study',     Color(0xFF8E44AD)),
     _TypeOption('hostel',  '🏠 Hostel',    Color(0xFF2E86C1)),
+    _TypeOption('book',    '📚 Book',      AppTheme.green),
   ];
+
+  // Book specific controllers
+  final _bookTitleCtrl = TextEditingController();
+  final _bookAuthorCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
+  final _conditionCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _bookDescCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -47,6 +58,12 @@ class _CreatePostScreenState extends State<CreatePostScreen>
   void dispose() {
     _c.dispose();
     _captionCtrl.dispose();
+    _bookTitleCtrl.dispose();
+    _bookAuthorCtrl.dispose();
+    _priceCtrl.dispose();
+    _conditionCtrl.dispose();
+    _phoneCtrl.dispose();
+    _bookDescCtrl.dispose();
     super.dispose();
   }
 
@@ -57,15 +74,38 @@ class _CreatePostScreenState extends State<CreatePostScreen>
   }
 
   Future<void> _submit() async {
-    if (_captionCtrl.text.trim().isEmpty) return;
+    if (_selectedType == 'book') {
+      if (_bookTitleCtrl.text.trim().isEmpty) return;
+    } else {
+      if (_captionCtrl.text.trim().isEmpty) return;
+    }
     setState(() => _loading = true);
     try {
       final nav = Navigator.of(context);
-      await PostService().createPost(
-        caption: _captionCtrl.text.trim(),
-        type: _selectedType,
-        imageFile: _imageFile,
-      );
+      if (_selectedType == 'book') {
+        // create BookModel and call BookService
+        final price = double.tryParse(_priceCtrl.text.trim()) ?? 0.0;
+        final book = BookModel(
+          id: '',
+          title: _bookTitleCtrl.text.trim(),
+          author: _bookAuthorCtrl.text.trim(),
+          price: price,
+          originalPrice: 0.0,
+          condition: _conditionCtrl.text.trim().isEmpty ? 'Good' : _conditionCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim(),
+          userId: '',
+          sellerName: '',
+          imageUrl: '',
+          description: _bookDescCtrl.text.trim(),
+        );
+        await BookService().addBook(book, image: _imageFile);
+      } else {
+        await PostService().createPost(
+          caption: _captionCtrl.text.trim(),
+          type: _selectedType,
+          imageFile: _imageFile,
+        );
+      }
       if (mounted) nav.pop();
     } catch (e) {
       if (mounted) {
@@ -181,6 +221,21 @@ class _CreatePostScreenState extends State<CreatePostScreen>
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                if (_selectedType == 'book') ...[
+                  TextField(controller: _bookTitleCtrl, decoration: const InputDecoration(labelText: 'Book title')),
+                  const SizedBox(height: 8),
+                  TextField(controller: _bookAuthorCtrl, decoration: const InputDecoration(labelText: 'Author')),
+                  const SizedBox(height: 8),
+                  TextField(controller: _priceCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price')),
+                  const SizedBox(height: 8),
+                  TextField(controller: _conditionCtrl, decoration: const InputDecoration(labelText: 'Condition (New/Good/Midlevel)')),
+                  const SizedBox(height: 8),
+                  TextField(controller: _phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Contact phone')),
+                  const SizedBox(height: 8),
+                  TextField(controller: _bookDescCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
+                  const SizedBox(height: 8),
+                ],
                 const SizedBox(height: 16),
 
                 GestureDetector(

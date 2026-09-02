@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/api_client.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import '../../services/book_service.dart';
+import '../../models/book_model.dart';
 import '../../services/hostel_service.dart';
 import '../../services/job_service.dart';
 import '../../services/notice_service.dart';
@@ -141,9 +144,195 @@ class _MyListingsScreenState extends State<MyListingsScreen>
     }
   }
 
-  void _editBook(Map<String, dynamic> b) => _editSingle('book', b['id'], 'title', b['title'] ?? '');
-  void _editJob(Map<String, dynamic> j) => _editSingle('job', j['id'], 'title', j['title'] ?? '');
-  void _editHostel(Map<String, dynamic> h) => _editSingle('hostel', h['id'], 'name', h['name'] ?? '');
+  void _editBook(Map<String, dynamic> b) {
+    final titleCtrl = TextEditingController(text: b['title'] ?? '');
+    final authorCtrl = TextEditingController(text: b['author'] ?? '');
+    final priceCtrl = TextEditingController(text: (b['price'] ?? '').toString());
+    final conditionCtrl = TextEditingController(text: b['condition'] ?? 'Good');
+    final phoneCtrl = TextEditingController(text: b['phone'] ?? '');
+    final descCtrl = TextEditingController(text: b['description'] ?? '');
+    File? imageFile;
+
+    Future<void> pickImage() async {
+      final img = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (img != null) imageFile = File(img.path);
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(
+        title: const Text('Edit Book'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Title')),
+            const SizedBox(height: 8),
+            TextField(controller: authorCtrl, decoration: const InputDecoration(labelText: 'Author')),
+            const SizedBox(height: 8),
+            TextField(controller: priceCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price')),
+            const SizedBox(height: 8),
+            TextField(controller: conditionCtrl, decoration: const InputDecoration(labelText: 'Condition')),
+            const SizedBox(height: 8),
+            TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Contact phone')),
+            const SizedBox(height: 8),
+            TextField(controller: descCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
+            const SizedBox(height: 10),
+            TextButton.icon(onPressed: () async { await pickImage(); setSt((){}); }, icon: const Icon(Icons.photo), label: const Text('Change image (optional)')),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () async {
+            try {
+              final price = double.tryParse(priceCtrl.text.trim()) ?? 0.0;
+              final book = BookModel(
+                id: b['id'],
+                title: titleCtrl.text.trim(),
+                author: authorCtrl.text.trim(),
+                price: price,
+                originalPrice: (b['originalPrice'] as num?)?.toDouble() ?? 0.0,
+                condition: conditionCtrl.text.trim(),
+                phone: phoneCtrl.text.trim(),
+                userId: b['userId'] ?? '',
+                sellerName: b['sellerName'] ?? '',
+                imageUrl: b['imageUrl'] ?? '',
+                description: descCtrl.text.trim(),
+              );
+              await BookService().updateBook(b['id'], book, image: imageFile);
+            } catch (_) {}
+            if (ctx.mounted) Navigator.pop(ctx);
+            _load();
+          }, child: const Text('Save')),
+        ],
+      )),
+    );
+  }
+  void _editJob(Map<String, dynamic> j) {
+    final titleCtrl = TextEditingController(text: j['title'] ?? '');
+    final companyCtrl = TextEditingController(text: j['company'] ?? '');
+    final locationCtrl = TextEditingController(text: j['location'] ?? '');
+    final salaryCtrl = TextEditingController(text: j['salary']?.toString() ?? '');
+    final emailCtrl = TextEditingController(text: j['contactEmail'] ?? '');
+    final descCtrl = TextEditingController(text: j['description'] ?? '');
+    File? imageFile;
+
+    Future<void> pickImage() async {
+      final img = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (img != null) imageFile = File(img.path);
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(
+        title: const Text('Edit Job'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Job Title')),
+            const SizedBox(height: 8),
+            TextField(controller: companyCtrl, decoration: const InputDecoration(labelText: 'Company')),
+            const SizedBox(height: 8),
+            TextField(controller: locationCtrl, decoration: const InputDecoration(labelText: 'Location')),
+            const SizedBox(height: 8),
+            TextField(controller: salaryCtrl, decoration: const InputDecoration(labelText: 'Salary')),
+            const SizedBox(height: 8),
+            TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: 'Contact Email')),
+            const SizedBox(height: 8),
+            TextField(controller: descCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
+            const SizedBox(height: 10),
+            TextButton.icon(onPressed: () async { await pickImage(); setSt((){}); }, icon: const Icon(Icons.photo), label: const Text('Change image (optional)')),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () async {
+            try {
+              final job = JobModel(
+                id: j['id'],
+                title: titleCtrl.text.trim(),
+                company: companyCtrl.text.trim(),
+                location: locationCtrl.text.trim(),
+                salary: salaryCtrl.text.trim(),
+                description: descCtrl.text.trim(),
+                contactEmail: emailCtrl.text.trim(),
+                phone: j['phone'] ?? '',
+                userId: j['userId'] ?? '',
+                posterName: j['posterName'] ?? '',
+                imageUrl: j['imageUrl'] ?? '',
+              );
+              await JobService().updateJob(j['id'], job, image: imageFile);
+            } catch (_) {}
+            if (ctx.mounted) Navigator.pop(ctx);
+            _load();
+          }, child: const Text('Save')),
+        ],
+      )),
+    );
+  }
+
+  void _editHostel(Map<String, dynamic> h) {
+    final nameCtrl = TextEditingController(text: h['name'] ?? '');
+    final locationCtrl = TextEditingController(text: h['location'] ?? '');
+    final rentCtrl = TextEditingController(text: (h['rent'] ?? '').toString());
+    final phoneCtrl = TextEditingController(text: h['phone'] ?? '');
+    final descCtrl = TextEditingController(text: h['description'] ?? '');
+    String selectedGender = h['gender'] ?? 'Boys';
+    File? imageFile;
+
+    Future<void> pickImage() async {
+      final img = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (img != null) imageFile = File(img.path);
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(
+        title: const Text('Edit Hostel'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Hostel Name')),
+            const SizedBox(height: 8),
+            TextField(controller: locationCtrl, decoration: const InputDecoration(labelText: 'Location')),
+            const SizedBox(height: 8),
+            TextField(controller: rentCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Rent')),
+            const SizedBox(height: 8),
+            TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Contact Phone')),
+            const SizedBox(height: 8),
+            TextField(controller: descCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, children: ['Boys','Girls','Family'].map((g) {
+              final sel = selectedGender == g;
+              return GestureDetector(onTap: () => setSt(() => selectedGender = g), child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: sel ? AppTheme.secondary : AppTheme.secondary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)), child: Text(g, style: TextStyle(color: sel ? Colors.white : AppTheme.secondary))));
+            }).toList()),
+            const SizedBox(height: 10),
+            TextButton.icon(onPressed: () async { await pickImage(); setSt((){}); }, icon: const Icon(Icons.photo), label: const Text('Change image (optional)')),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () async {
+            try {
+              final hostel = HostelModel(
+                id: h['id'],
+                name: nameCtrl.text.trim(),
+                type: selectedGender,
+                location: locationCtrl.text.trim(),
+                rent: double.tryParse(rentCtrl.text.trim()) ?? 0,
+                facilities: h['facilities'] ?? '',
+                phone: phoneCtrl.text.trim(),
+                userId: h['userId'] ?? '',
+                ownerName: h['ownerName'] ?? '',
+                gender: selectedGender,
+                distance: h['distance'] ?? '',
+                description: descCtrl.text.trim(),
+              );
+              await HostelService().updateHostel(h['id'], hostel, image: imageFile);
+            } catch (_) {}
+            if (ctx.mounted) Navigator.pop(ctx);
+            _load();
+          }, child: const Text('Save')),
+        ],
+      )),
+    );
+  }
   void _editNotice(Map<String, dynamic> n) => _editSingle('notice', n['id'], 'title', n['title'] ?? '');
   void _editTutor(Map<String, dynamic> t) => _editSingle('tutor', t['id'], 'title', t['title'] ?? '');
   void _editGroup(Map<String, dynamic> g) => _editSingle('group', g['id'], 'name', g['name'] ?? '');
